@@ -16,8 +16,68 @@ body {
   font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
   min-width: 1024px;
+  background: #f9fafb;
+  color: #111827;
+  transition: background-color 160ms ease, color 160ms ease;
 }
 
 @media (max-width: 1024px) {
   body { min-width: auto; }
+}
+
+html.dark body {
+  background: #0f172a;
+  color: #e5e7eb;
+}
+
+html.dark .bg-white {
+  background-color: #111827;
+}
+
+html.dark .bg-gray-50 {
+  background-color: #0b1220;
+}
+
+html.dark .border,
+html.dark .border-b,
+html.dark .border-t,
+html.dark .border-l,
+html.dark .border-r,
+html.dark .border-gray-100,
+html.dark .border-gray-200 {
+  border-color: #334155;
+}
+
+html.dark .text-gray-400 {
+  color: #94a3b8;
+}
+
+html.dark .text-gray-500,
+html.dark .text-gray-600 {
+  color: #cbd5e1;
+}
+
+html.dark .text-gray-700,
+html.dark .text-gray-800 {
+  color: #e5e7eb;
+}
+
+html.dark .shadow-sm,
+html.dark .shadow-xl {
+  box-shadow: 0 16px 40px rgba(2, 6, 23, 0.45);
+}
+
+html.dark .hover\:bg-gray-50:hover,
+html.dark .disabled\:bg-gray-50:disabled {
+  background-color: #1e293b;
+}
+
+html.dark .hover\:bg-gray-100:hover,
+html.dark .hover\:bg-gray-200:hover {
+  background-color: #334155;
+}
+
+html.dark .hover\:text-gray-600:hover,
+html.dark .hover\:text-gray-700:hover {
+  color: #f8fafc;
 }

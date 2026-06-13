@@ -27,7 +27,7 @@ function AppInner() {
   const locale = useSettingsStore((s) => s.locale);
 
   useEffect(() => {
-    document.documentElement.className = theme === "dark" ? "dark" : "";
+    document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.lang = locale;
   }, [locale, theme]);
 
