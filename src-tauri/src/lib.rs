@@ -1,4 +1,7 @@
 pub mod db;
+pub mod pipeline;
+pub mod ai;
+pub mod commands;
 
 use db::Database;
 use std::path::PathBuf;
@@ -22,8 +25,6 @@ pub fn run() {
                 }
                 Err(e) => {
                     eprintln!("Database initialization failed: {}", e);
-                    // In production, show a Tauri window with the error message
-                    // For now, log the error and allow the app to start with limited functionality
                     Err(Box::new(std::io::Error::new(
                         std::io::ErrorKind::Other,
                         format!("Database error: {}", e),
@@ -31,6 +32,13 @@ pub fn run() {
                 }
             }
         })
+        .invoke_handler(tauri::generate_handler![
+            commands::chat::start_chat_stream,
+            commands::chat::stop_chat_stream,
+            commands::chat::sync_card_queue,
+            commands::chat::submit_quiz_answers,
+            commands::chat::complete_session,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
