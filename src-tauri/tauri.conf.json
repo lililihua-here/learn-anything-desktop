@@ -28,11 +28,11 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
+      "C:/Users/xiaoming/.tauri-icons/learn-anything-tool-desktop/32x32.png",
+      "C:/Users/xiaoming/.tauri-icons/learn-anything-tool-desktop/128x128.png",
+      "C:/Users/xiaoming/.tauri-icons/learn-anything-tool-desktop/128x128@2x.png",
+      "C:/Users/xiaoming/.tauri-icons/learn-anything-tool-desktop/icon.icns",
+      "C:/Users/xiaoming/.tauri-icons/learn-anything-tool-desktop/icon.ico"
     ]
   }
 }

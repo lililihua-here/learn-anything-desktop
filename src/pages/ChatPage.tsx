@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import ChatArea from "../components/chat/ChatArea";
 import CardQueue from "../components/cards/CardQueue";
 import QuizPanel from "../components/quiz/QuizPanel";
@@ -9,31 +9,45 @@ import { useCardStore } from "../stores/cardStore";
 import { useQuizStore } from "../stores/quizStore";
 import { useSessionStore } from "../stores/sessionStore";
 import {
-  startChatStream, stopChatStream, listenChatStream,
+  completeSession, listenChatStream, startChatStream, stopChatStream,
   type ChatMessage,
 } from "../lib/tauri";
 import { generateSlug } from "../utils/slug";
+import { useSettingsStore } from "../stores/settingsStore";
 
 const L0_WINDOW_SIZE = 20;
 
 export default function ChatPage() {
   const { concept } = useParams<{ concept: string }>();
+  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
-  const [breadcrumbPath] = useState<string[]>([concept || ""]);
-  const hasStarted = useRef(false);
   const sessionIdRef = useRef<string>("");
+  const breadcrumbPath = concept ? [concept] : [];
 
   const setName = useChatStore((s) => s.setConcept);
   const addMsg = useChatStore((s) => s.addMessage);
   const appendMsg = useChatStore((s) => s.appendToLastMessage);
   const setStreaming = useChatStore((s) => s.setStreaming);
   const setError = useChatStore((s) => s.setError);
+  const clearError = useChatStore((s) => s.clearError);
+  const resetConversation = useChatStore((s) => s.resetConversation);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const startSession = useSessionStore((s) => s.startSession);
+  const completeLocalSession = useSessionStore((s) => s.completeSession);
+  const interruptLocalSession = useSessionStore((s) => s.interruptSession);
   const setCardSessionId = useCardStore((s) => s.setSessionId);
+  const queueLength = useCardStore((s) => s.queue.length);
+  const flushQueue = useCardStore((s) => s.flushQueue);
+  const resetQueue = useCardStore((s) => s.resetQueue);
+  const resetQuiz = useQuizStore((s) => s.resetQuiz);
+  const isQuizSubmitted = useQuizStore((s) => s.isSubmitted);
+  const provider = useSettingsStore((s) => s.provider);
+  const model = useSettingsStore((s) => s.model);
 
   const l0Buffer = useRef<ChatMessage[]>([]);
   const assistantBuffer = useRef("");
+  const autoCompletedSessionRef = useRef<string | null>(null);
+  const canCompleteSession = isQuizSubmitted && queueLength === 0;
 
   function slideL0Window(messages: ChatMessage[]): ChatMessage[] {
     if (messages.length <= L0_WINDOW_SIZE) return messages;
@@ -53,9 +67,18 @@ export default function ChatPage() {
     return parts.join("\n");
   }
 
-  const handleStreamResponse = useCallback(() => {
-    assistantBuffer.current = "";
-    return listenChatStream((payload) => {
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    listenChatStream((payload) => {
+      if (!sessionIdRef.current) {
+        sessionIdRef.current = payload.session_id;
+      }
+
+      if (payload.session_id !== sessionIdRef.current) {
+        return;
+      }
+
       switch (payload.event_type) {
         case "text_delta":
           assistantBuffer.current += payload.content;
@@ -64,8 +87,12 @@ export default function ChatPage() {
         case "tool_use":
           if (payload.tool_name === "present_card" && payload.tool_input) {
             const input = payload.tool_input as { name: string; slug: string; summary: string };
-            useChatStore.getState().addCard(input);
-            useCardStore.getState().addCard(input);
+            useCardStore.getState().addCard({
+              id: `${payload.session_id}:${input.slug}`,
+              name: input.name,
+              slug: input.slug,
+              summary: input.summary,
+            });
           }
           if (payload.tool_name === "start_quiz" && payload.tool_input) {
             const input = payload.tool_input as { quiz_type: string; questions: unknown[] };
@@ -89,29 +116,63 @@ export default function ChatPage() {
           setError(payload.content);
           break;
       }
+    }).then((off) => {
+      unlisten = off;
     });
-  }, [appendMsg, setStreaming, setError]);
+
+    return () => {
+      unlisten?.();
+    };
+  }, [appendMsg, setError, setStreaming]);
 
   useEffect(() => {
-    if (!concept || hasStarted.current) return;
-    hasStarted.current = true;
+    if (!concept) return;
 
+    if (sessionIdRef.current) {
+      void stopChatStream(sessionIdRef.current);
+    }
+
+    resetConversation();
+    resetQueue();
+    resetQuiz();
+    clearError();
+
+    assistantBuffer.current = "";
+    autoCompletedSessionRef.current = null;
+    sessionIdRef.current = "";
     const slug = generateSlug(concept);
     setName(concept, slug);
 
     const initialMsg: ChatMessage = { role: "user", content: `I want to learn about「${concept}」` };
     l0Buffer.current = [initialMsg];
 
+    addMsg({ id: crypto.randomUUID(), role: "user", content: initialMsg.content });
     addMsg({ id: crypto.randomUUID(), role: "assistant", content: "", isStreaming: true });
     setStreaming(true);
 
-    handleStreamResponse();
-    startChatStream(slug, concept, l0Buffer.current, buildL1Context()).then((sid) => {
-      sessionIdRef.current = sid;
-      setCardSessionId(sid);
-      startSession(sid, concept, slug);
-    });
-  }, [concept]);
+    startChatStream(provider, model, slug, concept, l0Buffer.current, buildL1Context())
+      .then((sid) => {
+        sessionIdRef.current = sid;
+        setCardSessionId(sid);
+        startSession(sid, concept, slug);
+      })
+      .catch((error) => {
+        setStreaming(false);
+        setError(String(error));
+      });
+  }, [
+    addMsg,
+    clearError,
+    concept,
+    resetConversation,
+    resetQueue,
+    resetQuiz,
+    setCardSessionId,
+    setError,
+    setName,
+    setStreaming,
+    startSession,
+  ]);
 
   const handleSend = () => {
     if (!inputValue.trim() || isStreaming || !concept) return;
@@ -125,21 +186,76 @@ export default function ChatPage() {
     addMsg({ id: crypto.randomUUID(), role: "assistant", content: "", isStreaming: true });
     setStreaming(true);
 
-    handleStreamResponse();
     startChatStream(
+      provider,
+      model,
       useChatStore.getState().conceptSlug,
       concept,
       l0Buffer.current,
       buildL1Context(),
-    ).then((sid) => {
-      sessionIdRef.current = sid;
-      setCardSessionId(sid);
-    });
+      sessionIdRef.current || undefined,
+    )
+      .then((sid) => {
+        sessionIdRef.current = sid;
+        setCardSessionId(sid);
+      })
+      .catch((error) => {
+        setStreaming(false);
+        setError(String(error));
+      });
   };
 
   const handleStop = () => {
+    if (!sessionIdRef.current) return;
     stopChatStream(sessionIdRef.current);
     setStreaming(false);
+  };
+
+  useEffect(() => {
+    if (!sessionIdRef.current || !canCompleteSession) return;
+    if (autoCompletedSessionRef.current === sessionIdRef.current) return;
+
+    const sessionId = sessionIdRef.current;
+    autoCompletedSessionRef.current = sessionId;
+
+    void (async () => {
+      try {
+        await flushQueue();
+        await completeSession(sessionId, "completed");
+        completeLocalSession();
+        sessionIdRef.current = "";
+        navigate("/");
+      } catch (error) {
+        autoCompletedSessionRef.current = null;
+        setError(String(error));
+      }
+    })();
+  }, [canCompleteSession, completeLocalSession, flushQueue, navigate, setError]);
+
+  const handleEndSession = async () => {
+    if (!sessionIdRef.current) return;
+
+    const finalStatus = canCompleteSession ? "completed" : "interrupted";
+
+    try {
+      if (isStreaming) {
+        await stopChatStream(sessionIdRef.current);
+      }
+
+      await flushQueue();
+      await completeSession(sessionIdRef.current, finalStatus);
+
+      if (finalStatus === "completed") {
+        completeLocalSession();
+      } else {
+        interruptLocalSession();
+      }
+
+      sessionIdRef.current = "";
+      navigate("/");
+    } catch (error) {
+      setError(String(error));
+    }
   };
 
   return (
@@ -149,6 +265,12 @@ export default function ChatPage() {
         <ChatArea />
         <QuizPanel />
         <div className="h-16 border-t bg-white px-4 flex items-center gap-3 shrink-0">
+          <button
+            onClick={handleEndSession}
+            className="h-10 px-4 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            End session
+          </button>
           <input type="text" value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}

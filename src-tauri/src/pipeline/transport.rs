@@ -47,7 +47,9 @@ pub async fn start_stream(
             Ok(r) => r,
             Err(e) => {
                 last_error = format!("Transport error: {}", e);
-                if is_retryable(&e) && attempt < MAX_RETRIES { continue; }
+                if is_retryable(&e) && attempt < MAX_RETRIES {
+                    continue;
+                }
                 return Err(last_error);
             }
         };
@@ -60,7 +62,9 @@ pub async fn start_stream(
         let msg = response.text().await.unwrap_or_default();
         last_error = format!("API {}: {}", status, msg);
 
-        if status.is_server_error() && attempt < MAX_RETRIES { continue; }
+        if status.is_server_error() && attempt < MAX_RETRIES {
+            continue;
+        }
         return Err(last_error);
     }
 

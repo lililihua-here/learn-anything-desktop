@@ -17,7 +17,6 @@ export interface ChatMessage {
 
 export interface CardQueueItem {
   card_id: string;
-  concept_id: string;
   position: number;
   status: string;
   defer_count: number;
@@ -32,16 +31,22 @@ export interface QuizSubmission {
 }
 
 export function startChatStream(
+  provider: string,
+  model: string,
   conceptSlug: string,
   conceptName: string,
   messages: ChatMessage[],
-  l1Context: string
+  l1Context: string,
+  resumeSessionId?: string
 ): Promise<string> {
   return invoke("start_chat_stream", {
+    provider,
+    model,
     conceptSlug,
     conceptName,
     messages,
     l1Context,
+    resumeSessionId,
   });
 }
 

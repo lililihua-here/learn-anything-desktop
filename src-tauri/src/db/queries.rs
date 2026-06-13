@@ -1,4 +1,4 @@
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -47,19 +47,43 @@ pub fn upsert_concept(conn: &Connection, id: &str, name: &str, slug: &str) -> ru
     Ok(())
 }
 
+pub fn ensure_concept(conn: &Connection, name: &str, slug: &str) -> rusqlite::Result<String> {
+    if let Some(concept) = get_concept_by_slug(conn, slug)? {
+        if concept.name != name {
+            upsert_concept(conn, &concept.id, name, slug)?;
+        }
+        return Ok(concept.id);
+    }
+
+    let concept_id = uuid::Uuid::new_v4().to_string();
+    upsert_concept(conn, &concept_id, name, slug)?;
+    Ok(concept_id)
+}
+
+pub fn get_concept_id_by_slug(conn: &Connection, slug: &str) -> rusqlite::Result<Option<String>> {
+    Ok(get_concept_by_slug(conn, slug)?.map(|concept| concept.id))
+}
+
 pub fn get_concept_by_slug(conn: &Connection, slug: &str) -> rusqlite::Result<Option<Concept>> {
     let mut stmt = conn.prepare(
         "SELECT id, domain_id, name, slug, status, confidence, practice_count,
                 explain_count, last_explained, last_practiced, sort_order, created_at
-         FROM concepts WHERE slug = ?1"
+         FROM concepts WHERE slug = ?1",
     )?;
     let mut rows = stmt.query_map(params![slug], |row| {
         Ok(Concept {
-            id: row.get(0)?, domain_id: row.get(1)?, name: row.get(2)?,
-            slug: row.get(3)?, status: row.get(4)?, confidence: row.get(5)?,
-            practice_count: row.get(6)?, explain_count: row.get(7)?,
-            last_explained: row.get(8)?, last_practiced: row.get(9)?,
-            sort_order: row.get(10)?, created_at: row.get(11)?,
+            id: row.get(0)?,
+            domain_id: row.get(1)?,
+            name: row.get(2)?,
+            slug: row.get(3)?,
+            status: row.get(4)?,
+            confidence: row.get(5)?,
+            practice_count: row.get(6)?,
+            explain_count: row.get(7)?,
+            last_explained: row.get(8)?,
+            last_practiced: row.get(9)?,
+            sort_order: row.get(10)?,
+            created_at: row.get(11)?,
         })
     })?;
     match rows.next() {
@@ -68,11 +92,17 @@ pub fn get_concept_by_slug(conn: &Connection, slug: &str) -> rusqlite::Result<Op
     }
 }
 
-pub fn update_concept_status(conn: &Connection, slug: &str, status: &str, confidence: f64) -> rusqlite::Result<()> {
+pub fn update_concept_status(
+    conn: &Connection,
+    slug: &str,
+    status: &str,
+    confidence: f64,
+) -> rusqlite::Result<()> {
     conn.execute(
         "UPDATE concepts SET status=?1, confidence=?2 WHERE slug=?3",
         params![status, confidence, slug],
-    )
+    )?;
+    Ok(())
 }
 
 pub fn increment_explain_count(conn: &Connection, slug: &str) -> rusqlite::Result<()> {
@@ -95,15 +125,22 @@ pub fn get_all_concepts(conn: &Connection) -> rusqlite::Result<Vec<Concept>> {
     let mut stmt = conn.prepare(
         "SELECT id, domain_id, name, slug, status, confidence, practice_count,
                 explain_count, last_explained, last_practiced, sort_order, created_at
-         FROM concepts ORDER BY created_at DESC"
+         FROM concepts ORDER BY created_at DESC",
     )?;
     let rows = stmt.query_map([], |row| {
         Ok(Concept {
-            id: row.get(0)?, domain_id: row.get(1)?, name: row.get(2)?,
-            slug: row.get(3)?, status: row.get(4)?, confidence: row.get(5)?,
-            practice_count: row.get(6)?, explain_count: row.get(7)?,
-            last_explained: row.get(8)?, last_practiced: row.get(9)?,
-            sort_order: row.get(10)?, created_at: row.get(11)?,
+            id: row.get(0)?,
+            domain_id: row.get(1)?,
+            name: row.get(2)?,
+            slug: row.get(3)?,
+            status: row.get(4)?,
+            confidence: row.get(5)?,
+            practice_count: row.get(6)?,
+            explain_count: row.get(7)?,
+            last_explained: row.get(8)?,
+            last_practiced: row.get(9)?,
+            sort_order: row.get(10)?,
+            created_at: row.get(11)?,
         })
     })?;
     rows.collect()
@@ -113,32 +150,46 @@ pub fn get_learned_concepts(conn: &Connection) -> rusqlite::Result<Vec<Concept>>
     let mut stmt = conn.prepare(
         "SELECT id, domain_id, name, slug, status, confidence, practice_count,
                 explain_count, last_explained, last_practiced, sort_order, created_at
-         FROM concepts WHERE status != 'unexplored' ORDER BY last_explained DESC"
+         FROM concepts WHERE status != 'unexplored' ORDER BY last_explained DESC",
     )?;
     let rows = stmt.query_map([], |row| {
         Ok(Concept {
-            id: row.get(0)?, domain_id: row.get(1)?, name: row.get(2)?,
-            slug: row.get(3)?, status: row.get(4)?, confidence: row.get(5)?,
-            practice_count: row.get(6)?, explain_count: row.get(7)?,
-            last_explained: row.get(8)?, last_practiced: row.get(9)?,
-            sort_order: row.get(10)?, created_at: row.get(11)?,
+            id: row.get(0)?,
+            domain_id: row.get(1)?,
+            name: row.get(2)?,
+            slug: row.get(3)?,
+            status: row.get(4)?,
+            confidence: row.get(5)?,
+            practice_count: row.get(6)?,
+            explain_count: row.get(7)?,
+            last_explained: row.get(8)?,
+            last_practiced: row.get(9)?,
+            sort_order: row.get(10)?,
+            created_at: row.get(11)?,
         })
     })?;
     rows.collect()
 }
 
-pub fn get_resumable_session(conn: &Connection, concept_slug: &str) -> rusqlite::Result<Option<SessionInfo>> {
+pub fn get_resumable_session(
+    conn: &Connection,
+    concept_slug: &str,
+) -> rusqlite::Result<Option<SessionInfo>> {
     let mut stmt = conn.prepare(
         "SELECT s.id, s.concept_id, c.name, c.slug, s.status, s.started_at, s.ended_at
          FROM sessions s JOIN concepts c ON s.concept_id = c.id
          WHERE c.slug = ?1 AND s.status IN ('active', 'interrupted')
-         ORDER BY s.started_at DESC LIMIT 1"
+         ORDER BY s.started_at DESC LIMIT 1",
     )?;
     let mut rows = stmt.query_map(params![concept_slug], |row| {
         Ok(SessionInfo {
-            id: row.get(0)?, concept_id: row.get(1)?, concept_name: row.get(2)?,
-            concept_slug: row.get(3)?, status: row.get(4)?,
-            started_at: row.get(5)?, ended_at: row.get(6)?,
+            id: row.get(0)?,
+            concept_id: row.get(1)?,
+            concept_name: row.get(2)?,
+            concept_slug: row.get(3)?,
+            status: row.get(4)?,
+            started_at: row.get(5)?,
+            ended_at: row.get(6)?,
         })
     })?;
     match rows.next() {
@@ -147,16 +198,23 @@ pub fn get_resumable_session(conn: &Connection, concept_slug: &str) -> rusqlite:
     }
 }
 
-pub fn get_session_messages(conn: &Connection, session_id: &str, limit: usize) -> rusqlite::Result<Vec<MessageRow>> {
+pub fn get_session_messages(
+    conn: &Connection,
+    session_id: &str,
+    limit: usize,
+) -> rusqlite::Result<Vec<MessageRow>> {
     let mut stmt = conn.prepare(
         "SELECT id, session_id, role, content, created_at
          FROM messages WHERE session_id = ?1
-         ORDER BY created_at DESC LIMIT ?2"
+         ORDER BY created_at DESC LIMIT ?2",
     )?;
     let rows = stmt.query_map(params![session_id, limit as i64], |row| {
         Ok(MessageRow {
-            id: row.get(0)?, session_id: row.get(1)?, role: row.get(2)?,
-            content: row.get(3)?, created_at: row.get(4)?,
+            id: row.get(0)?,
+            session_id: row.get(1)?,
+            role: row.get(2)?,
+            content: row.get(3)?,
+            created_at: row.get(4)?,
         })
     })?;
     let mut msgs: Vec<MessageRow> = rows.filter_map(|r| r.ok()).collect();
@@ -168,25 +226,39 @@ pub fn get_session_history(conn: &Connection, limit: usize) -> rusqlite::Result<
     let mut stmt = conn.prepare(
         "SELECT s.id, s.concept_id, c.name, c.slug, s.status, s.started_at, s.ended_at
          FROM sessions s JOIN concepts c ON s.concept_id = c.id
-         ORDER BY s.started_at DESC LIMIT ?1"
+         ORDER BY s.started_at DESC LIMIT ?1",
     )?;
     let rows = stmt.query_map(params![limit as i64], |row| {
         Ok(SessionInfo {
-            id: row.get(0)?, concept_id: row.get(1)?, concept_name: row.get(2)?,
-            concept_slug: row.get(3)?, status: row.get(4)?,
-            started_at: row.get(5)?, ended_at: row.get(6)?,
+            id: row.get(0)?,
+            concept_id: row.get(1)?,
+            concept_name: row.get(2)?,
+            concept_slug: row.get(3)?,
+            status: row.get(4)?,
+            started_at: row.get(5)?,
+            ended_at: row.get(6)?,
         })
     })?;
     rows.collect()
 }
 
-pub fn get_card_queue(conn: &Connection, session_id: &str) -> rusqlite::Result<Vec<(String, String, String, i64, String, i64)>> {
+pub fn get_card_queue(
+    conn: &Connection,
+    session_id: &str,
+) -> rusqlite::Result<Vec<(String, String, String, i64, String, i64)>> {
     let mut stmt = conn.prepare(
         "SELECT id, card_id, concept_id, position, status, defer_count
-         FROM card_queue WHERE session_id = ?1 ORDER BY position"
+         FROM card_queue WHERE session_id = ?1 ORDER BY position",
     )?;
     let rows = stmt.query_map(params![session_id], |row| {
-        Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?))
+        Ok((
+            row.get(0)?,
+            row.get(1)?,
+            row.get(2)?,
+            row.get(3)?,
+            row.get(4)?,
+            row.get(5)?,
+        ))
     })?;
     rows.collect()
 }
@@ -207,4 +279,36 @@ pub fn save_setting(conn: &Connection, key: &str, value: &str) -> rusqlite::Resu
         params![key, value],
     )?;
     Ok(())
+}
+
+pub fn is_session_complete(conn: &Connection, session_id: &str) -> rusqlite::Result<bool> {
+    let quiz_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM quiz_submissions WHERE session_id=?1",
+        params![session_id],
+        |row| row.get(0),
+    )?;
+
+    let remaining: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM card_queue WHERE session_id=?1 AND status NOT IN ('skipped', 'mastered')",
+        params![session_id],
+        |row| row.get(0),
+    )?;
+
+    Ok(quiz_count > 0 && remaining == 0)
+}
+
+pub fn mark_session_completed_if_ready(
+    conn: &Connection,
+    session_id: &str,
+) -> rusqlite::Result<bool> {
+    if !is_session_complete(conn, session_id)? {
+        return Ok(false);
+    }
+
+    conn.execute(
+        "UPDATE sessions SET status='completed', ended_at=datetime('now') WHERE id=?1",
+        params![session_id],
+    )?;
+
+    Ok(true)
 }

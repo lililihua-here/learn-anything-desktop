@@ -21,6 +21,7 @@ interface ChatState {
   setQuizData: (data: unknown) => void;
   setError: (msg: string) => void;
   clearError: () => void;
+  resetConversation: () => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -53,4 +54,14 @@ export const useChatStore = create<ChatState>((set) => ({
   setQuizData: (data) => set({ quizData: data as ChatState["quizData"] }),
   setError: (msg) => set({ isError: true, errorMessage: msg, isStreaming: false }),
   clearError: () => set({ isError: false, errorMessage: "" }),
+  resetConversation: () =>
+    set({
+      messages: [],
+      cards: [],
+      suggestions: [],
+      quizData: null,
+      isStreaming: false,
+      isError: false,
+      errorMessage: "",
+    }),
 }));

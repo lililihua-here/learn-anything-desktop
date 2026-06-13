@@ -11,22 +11,21 @@ interface CardState {
   debounceTimer: ReturnType<typeof setTimeout> | null;
 
   setSessionId: (id: string) => void;
-  addCard: (card: Omit<CardItem, "id" | "status" | "deferCount">) => void;
+  addCard: (card: Omit<CardItem, "status" | "deferCount">) => void;
   swipeRight: (cardId: string) => void;
   swipeLeft: (cardId: string) => void;
   markMastered: (cardId: string) => void;
   undo: () => void;
   clearToast: () => void;
   flushQueue: () => Promise<void>;
+  resetQueue: () => void;
 }
-
-const generateId = () => crypto.randomUUID();
 
 function scheduleFlush(get: () => CardState) {
   const state = get();
   if (state.debounceTimer) clearTimeout(state.debounceTimer);
   const timer = setTimeout(() => get().flushQueue(), 500);
-  get().debounceTimer = timer;
+  useCardStore.setState({ debounceTimer: timer });
 }
 
 export const useCardStore = create<CardState>((set, get) => ({
@@ -41,7 +40,9 @@ export const useCardStore = create<CardState>((set, get) => ({
 
   addCard: (card) =>
     set((s) => ({
-      queue: [...s.queue, { ...card, id: generateId(), status: "active", deferCount: 0 }],
+      queue: s.queue.some((item) => item.id === card.id)
+        ? s.queue
+        : [...s.queue, { ...card, status: "active", deferCount: 0 }],
     })),
 
   swipeRight: (cardId) =>
@@ -122,18 +123,30 @@ export const useCardStore = create<CardState>((set, get) => ({
 
   flushQueue: async () => {
     const { sessionId, queue } = get();
-    if (!sessionId || queue.length === 0) return;
+    if (!sessionId) return;
     try {
       await syncCardQueue(sessionId, queue.map((c, i) => ({
         card_id: c.id,
-        concept_id: c.slug,
         position: i,
         status: c.status,
         defer_count: c.deferCount,
       })));
-      set({ pendingFlush: false });
+      set({ pendingFlush: false, debounceTimer: null });
     } catch {
       // silent fail, will retry on next flush
     }
   },
+
+  resetQueue: () =>
+    set((s) => {
+      if (s.debounceTimer) clearTimeout(s.debounceTimer);
+      return {
+        queue: [],
+        undoStack: [],
+        toastMessage: null,
+        sessionId: null,
+        pendingFlush: false,
+        debounceTimer: null,
+      };
+    }),
 }));

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import HomePage from "./pages/HomePage";
 import ChatPage from "./pages/ChatPage";
@@ -10,12 +10,26 @@ import { ToastContainer } from "./components/common/Toast";
 import { useSettingsStore } from "./stores/settingsStore";
 import { useEffect } from "react";
 
+function LearningRoute() {
+  const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
+  const location = useLocation();
+
+  if (!hasCompletedOnboarding) {
+    const next = encodeURIComponent(`${location.pathname}${location.search}`);
+    return <Navigate to={`/settings?next=${next}`} replace />;
+  }
+
+  return <ChatPage />;
+}
+
 function AppInner() {
   const theme = useSettingsStore((s) => s.theme);
+  const locale = useSettingsStore((s) => s.locale);
 
   useEffect(() => {
     document.documentElement.className = theme === "dark" ? "dark" : "";
-  }, [theme]);
+    document.documentElement.lang = locale;
+  }, [locale, theme]);
 
   return (
     <BrowserRouter>
@@ -23,7 +37,7 @@ function AppInner() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomePage />} />
-          <Route path="/learn/:concept" element={<ChatPage />} />
+          <Route path="/learn/:concept" element={<LearningRoute />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/cards" element={<CardLibrary />} />
           <Route path="/concepts" element={<ConceptsPage />} />

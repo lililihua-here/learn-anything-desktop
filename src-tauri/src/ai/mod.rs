@@ -21,8 +21,24 @@ pub const SOCRATIC_SYSTEM_PROMPT: &str = "\
 
 /// Tool definitions for Anthropic function calling.
 pub const SOCRATIC_TOOLS: &[(&str, &str, &str)] = &[
-    ("present_card", "为该学习主题中识别到的一个子概念生成知识卡片", r#"{"type":"object","properties":{"name":{"type":"string","description":"子概念名称"},"slug":{"type":"string","description":"kebab-case 标识符"},"summary":{"type":"string","description":"一句话中文描述，不超过20字"}},"required":["name","slug","summary"]}"#),
-    ("start_quiz", "为当前概念生成测验题", r#"{"type":"object","properties":{"quiz_type":{"type":"string","enum":["choice","short_answer","code"]},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"options":{"type":"array","items":{"type":"string"}},"correct_index":{"type":"integer"},"expected_keywords":{"type":"array","items":{"type":"string"}},"min_matches":{"type":"integer"},"test_cases":{"type":"array"},"starter_code":{"type":"string"},"function_name":{"type":"string"}}}},"required":["quiz_type","questions"]}}"#),
-    ("update_concept_status", "更新概念的学习状态", r#"{"type":"object","properties":{"slug":{"type":"string"},"status":{"type":"string","enum":["unexplored","in_progress","needs_practice","mastered"]},"confidence":{"type":"number","minimum":0,"maximum":1}},"required":["slug","status","confidence"]}"#),
-    ("suggest_next", "推荐下一步学习方向", r#"{"type":"object","properties":{"options":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"slug":{"type":"string"},"reason":{"type":"string"}}}},"required":["options"]}}"#),
+    (
+        "present_card",
+        "为该学习主题中识别到的一个子概念生成知识卡片",
+        r#"{"type":"object","properties":{"name":{"type":"string","description":"子概念名称"},"slug":{"type":"string","description":"kebab-case 标识符"},"summary":{"type":"string","description":"一句话中文描述，不超过20字"}},"required":["name","slug","summary"]}"#,
+    ),
+    (
+        "start_quiz",
+        "为当前概念生成测验题",
+        r#"{"type":"object","properties":{"quiz_type":{"type":"string","enum":["choice","short_answer","code"]},"questions":{"type":"array","items":{"type":"object","properties":{"question":{"type":"string"},"options":{"type":"array","items":{"type":"string"}},"correct_index":{"type":"integer"},"expected_keywords":{"type":"array","items":{"type":"string"}},"min_matches":{"type":"integer"},"test_cases":{"type":"array"},"starter_code":{"type":"string"},"function_name":{"type":"string"}}}},"required":["quiz_type","questions"]}}"#,
+    ),
+    (
+        "update_concept_status",
+        "更新概念的学习状态",
+        r#"{"type":"object","properties":{"slug":{"type":"string"},"status":{"type":"string","enum":["unexplored","in_progress","needs_practice","mastered"]},"confidence":{"type":"number","minimum":0,"maximum":1}},"required":["slug","status","confidence"]}"#,
+    ),
+    (
+        "suggest_next",
+        "推荐下一步学习方向",
+        r#"{"type":"object","properties":{"options":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"slug":{"type":"string"},"reason":{"type":"string"}}}},"required":["options"]}}"#,
+    ),
 ];

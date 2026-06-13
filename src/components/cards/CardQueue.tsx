@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useCardStore } from "../../stores/cardStore";
-import { useChatStore } from "../../stores/chatStore";
 import CardItem from "./CardItem";
 
 export default function CardQueue() {
@@ -11,15 +10,6 @@ export default function CardQueue() {
   const undo = useCardStore((s) => s.undo);
   const toast = useCardStore((s) => s.toastMessage);
   const clearToast = useCardStore((s) => s.clearToast);
-  const suggestions = useChatStore((s) => s.suggestions);
-
-  useEffect(() => {
-    if (suggestions.length > 0) {
-      suggestions.forEach((s) => {
-        useCardStore.getState().addCard({ name: s.name, slug: s.slug, summary: s.reason });
-      });
-    }
-  }, [suggestions]);
 
   useEffect(() => {
     if (toast) {
@@ -32,7 +22,7 @@ export default function CardQueue() {
     <div className="h-full flex flex-col">
       <div className="px-4 py-3 border-b shrink-0">
         <span className="text-sm font-medium text-gray-600">
-          {queue.length > 0 ? `Cards · ${queue.length} remaining` : "Cards"}
+          {queue.length > 0 ? `Knowledge Cards · ${queue.length} remaining` : "Knowledge Cards"}
         </span>
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-3">

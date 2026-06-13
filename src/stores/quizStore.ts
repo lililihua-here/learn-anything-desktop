@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 interface QuizState {
   isActive: boolean;
+  isSubmitted: boolean;
   quizType: "choice" | "short_answer" | "code" | null;
   questions: unknown[];
   currentIndex: number;
@@ -9,14 +10,16 @@ interface QuizState {
   results: Array<{ correct: boolean; feedback?: string }>;
 
   startQuiz: (type: string, questions: unknown[]) => void;
-  submitAnswer: (answer: string) => void;
+  submitAnswer: (answer: string, result: { correct: boolean; feedback?: string }) => void;
   nextQuestion: () => void;
+  markSubmitted: () => void;
   finishQuiz: () => void;
   resetQuiz: () => void;
 }
 
 export const useQuizStore = create<QuizState>((set) => ({
   isActive: false,
+  isSubmitted: false,
   quizType: null,
   questions: [],
   currentIndex: 0,
@@ -24,29 +27,40 @@ export const useQuizStore = create<QuizState>((set) => ({
   results: [],
 
   startQuiz: (type, questions) =>
-    set({ isActive: true, quizType: type as QuizState["quizType"], questions, currentIndex: 0, answers: [], results: [] }),
+    set({
+      isActive: true,
+      isSubmitted: false,
+      quizType: type as QuizState["quizType"],
+      questions,
+      currentIndex: 0,
+      answers: [],
+      results: [],
+    }),
 
-  submitAnswer: (answer) =>
+  submitAnswer: (answer, result) =>
     set((s) => {
-      const q = s.questions[s.currentIndex] as Record<string, unknown>;
-      const correctIndex = (q.correct_index as number) ?? -1;
-      const isCorrect = correctIndex >= 0 ? parseInt(answer) === correctIndex : false;
       return {
         answers: [...s.answers, answer],
-        results: [...s.results, {
-          correct: isCorrect,
-          feedback: isCorrect ? "✅ 回答正确！" : "❌ 再想想",
-        }],
+        results: [...s.results, result],
       };
     }),
 
   nextQuestion: () =>
     set((s) => {
       const next = s.currentIndex + 1;
-      if (next >= s.questions.length) return { isActive: false };
+      if (next >= s.questions.length) return s;
       return { currentIndex: next };
     }),
 
+  markSubmitted: () => set({ isSubmitted: true }),
   finishQuiz: () => set({ isActive: false }),
-  resetQuiz: () => set({ isActive: false, quizType: null, questions: [], currentIndex: 0, answers: [], results: [] }),
+  resetQuiz: () => set({
+    isActive: false,
+    isSubmitted: false,
+    quizType: null,
+    questions: [],
+    currentIndex: 0,
+    answers: [],
+    results: [],
+  }),
 }));

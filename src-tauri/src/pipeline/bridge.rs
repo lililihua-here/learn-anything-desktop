@@ -1,7 +1,7 @@
+use super::types::{StreamEvent, StreamEventType};
+use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::broadcast;
-use serde::Serialize;
-use super::types::{StreamEvent, StreamEventType};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FrontendPayload {
@@ -23,7 +23,8 @@ pub async fn run(app: AppHandle, mut rx: broadcast::Receiver<StreamEvent>) {
                 StreamEventType::ToolUse => "tool_use",
                 StreamEventType::Done => "done",
                 StreamEventType::Error => "error",
-            }.into(),
+            }
+            .into(),
             content: event.content,
             tool_name: event.tool_name,
             tool_input: event.tool_input,

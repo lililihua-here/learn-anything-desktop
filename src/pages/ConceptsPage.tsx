@@ -1,12 +1,26 @@
+import { useSettingsStore } from "../stores/settingsStore";
+
 export default function ConceptsPage() {
-  // In production, this queries Rust backend via IPC for learned concepts
+  const locale = useSettingsStore((s) => s.locale);
+  const copy =
+    locale === "zh-CN"
+      ? {
+          title: "已学概念",
+          emptyTitle: "还没有已学概念",
+          emptyHint: "学过的概念会显示在这里",
+        }
+      : {
+          title: "Learned Concepts",
+          emptyTitle: "No concepts learned yet",
+          emptyHint: "Concepts appear here after you learn them",
+        };
+
   return (
-    <div className="p-4">
-      <h2 className="font-semibold text-lg mb-4">📋 Learned Concepts</h2>
-      <div className="text-center text-gray-400 py-12">
-        <p className="text-3xl mb-2">📖</p>
-        <p>No concepts learned yet</p>
-        <p className="text-xs mt-1">Concepts appear here after you learn them</p>
+    <div className="h-full overflow-y-auto p-4">
+      <h2 className="mb-4 text-lg font-semibold">{copy.title}</h2>
+      <div className="py-12 text-center text-gray-400">
+        <p className="text-lg">{copy.emptyTitle}</p>
+        <p className="mt-1 text-xs">{copy.emptyHint}</p>
       </div>
     </div>
   );

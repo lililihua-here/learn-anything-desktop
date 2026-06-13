@@ -1,5 +1,5 @@
-pub mod schema;
 pub mod queries;
+pub mod schema;
 
 use rusqlite::Connection;
 use std::path::PathBuf;
@@ -14,17 +14,22 @@ pub struct Database {
 
 impl Database {
     pub fn new(app_dir: PathBuf) -> Result<Self, String> {
-        std::fs::create_dir_all(&app_dir).map_err(|e| format!("Failed to create app dir: {}", e))?;
+        std::fs::create_dir_all(&app_dir)
+            .map_err(|e| format!("Failed to create app dir: {}", e))?;
         let db_path = app_dir.join("learn-anything.db");
 
-        let query_conn = Connection::open(&db_path)
-            .map_err(|e| format!("Failed to open database: {}", e))?;
-        query_conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
+        let query_conn =
+            Connection::open(&db_path).map_err(|e| format!("Failed to open database: {}", e))?;
+        query_conn
+            .execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
             .map_err(|e| format!("Failed to configure database: {}", e))?;
         schema::initialize_db(&query_conn)
             .map_err(|e| format!("Failed to initialize schema: {}", e))?;
 
-        Ok(Database { query_conn, db_path })
+        Ok(Database {
+            query_conn,
+            db_path,
+        })
     }
 
     /// Open a new persistence connection for a streaming task.
@@ -33,8 +38,9 @@ impl Database {
         let conn = Connection::open(&self.db_path)
             .map_err(|e| format!("Failed to open persistence connection: {}", e))?;
         conn.execute_batch(
-            "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;"
-        ).map_err(|e| format!("Failed to configure persistence connection: {}", e))?;
+            "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;",
+        )
+        .map_err(|e| format!("Failed to configure persistence connection: {}", e))?;
         Ok(conn)
     }
 }

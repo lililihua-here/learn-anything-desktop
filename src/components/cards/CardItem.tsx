@@ -42,7 +42,9 @@ export default function CardItem({ card, onSwipeRight, onSwipeLeft, onMastered }
       whileTap={{ scale: 0.98 }}>
       <h4 className="font-semibold text-gray-800 mb-1">{card.name}</h4>
       <p className="text-xs text-gray-400">{card.summary}</p>
-      {card.status === "deferred" && <span className="text-xs text-orange-400 mt-1 block">暂缓 1 次</span>}
+      {card.status === "deferred" && (
+        <span className="text-xs text-orange-400 mt-1 block">Deferred {card.deferCount} time(s)</span>
+      )}
     </motion.div>
   );
 }

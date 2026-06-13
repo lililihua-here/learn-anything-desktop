@@ -1,7 +1,8 @@
 use rusqlite::{Connection, Result};
 
 pub fn initialize_db(conn: &Connection) -> Result<()> {
-    conn.execute_batch("
+    conn.execute_batch(
+        "
         CREATE TABLE IF NOT EXISTS topics (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -91,6 +92,7 @@ pub fn initialize_db(conn: &Connection) -> Result<()> {
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
-    ")?;
+    ",
+    )?;
     Ok(())
 }

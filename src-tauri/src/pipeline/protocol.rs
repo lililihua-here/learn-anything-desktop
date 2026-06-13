@@ -1,8 +1,8 @@
+use super::transport;
+use super::types::{StreamEvent, StreamEventType};
 use futures::StreamExt;
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
-use super::types::{StreamEvent, StreamEventType};
-use super::transport;
 
 pub async fn run(
     api_key: &str,
@@ -15,7 +15,8 @@ pub async fn run(
     tx: broadcast::Sender<StreamEvent>,
     cancel_token: CancellationToken,
 ) -> Result<(), String> {
-    let mut stream = transport::start_stream(api_key, model, system_prompt, messages, tools).await?;
+    let mut stream =
+        transport::start_stream(api_key, model, system_prompt, messages, tools).await?;
     let mut buffer = String::new();
 
     let sid = session_id.to_string();
@@ -51,7 +52,9 @@ pub async fn run(
             buffer = buffer[event_end + 2..].to_string();
 
             for line in event_text.lines() {
-                if !line.starts_with("data: ") { continue; }
+                if !line.starts_with("data: ") {
+                    continue;
+                }
                 let data = &line[6..];
                 let event: serde_json::Value = match serde_json::from_str(data) {
                     Ok(v) => v,
@@ -63,7 +66,8 @@ pub async fn run(
                     "content_block_start" => {
                         let block = &event["content_block"];
                         if block["type"] == "tool_use" {
-                            active_tool_name = Some(block["name"].as_str().unwrap_or("").to_string());
+                            active_tool_name =
+                                Some(block["name"].as_str().unwrap_or("").to_string());
                             tool_input_buffer.clear();
                         }
                     }
@@ -73,8 +77,10 @@ pub async fn run(
                             let _ = tx.send(StreamEvent {
                                 event_type: StreamEventType::TextDelta,
                                 content: text.to_string(),
-                                tool_name: None, tool_input: None,
-                                session_id: sid.clone(), concept_slug: cs.clone(),
+                                tool_name: None,
+                                tool_input: None,
+                                session_id: sid.clone(),
+                                concept_slug: cs.clone(),
                             });
                         }
                         if let Some(json_fragment) = delta["input_json_delta"].as_str() {
@@ -104,8 +110,11 @@ pub async fn run(
                             if reason == "end_turn" || reason == "tool_use" {
                                 let _ = tx.send(StreamEvent {
                                     event_type: StreamEventType::Done,
-                                    content: String::new(), tool_name: None, tool_input: None,
-                                    session_id: sid.clone(), concept_slug: cs.clone(),
+                                    content: String::new(),
+                                    tool_name: None,
+                                    tool_input: None,
+                                    session_id: sid.clone(),
+                                    concept_slug: cs.clone(),
                                 });
                             }
                         }
@@ -113,9 +122,14 @@ pub async fn run(
                     "error" => {
                         let _ = tx.send(StreamEvent {
                             event_type: StreamEventType::Error,
-                            content: event["error"]["message"].as_str().unwrap_or("Unknown").into(),
-                            tool_name: None, tool_input: None,
-                            session_id: sid.clone(), concept_slug: cs.clone(),
+                            content: event["error"]["message"]
+                                .as_str()
+                                .unwrap_or("Unknown")
+                                .into(),
+                            tool_name: None,
+                            tool_input: None,
+                            session_id: sid.clone(),
+                            concept_slug: cs.clone(),
                         });
                     }
                     _ => {}
