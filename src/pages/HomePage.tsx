@@ -85,6 +85,18 @@ export default function HomePage() {
             或浏览热门主题 →
           </a>
         </p>
+        <p className="mt-2 text-center text-sm text-gray-400">
+          <a
+            href="/projects"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/projects");
+            }}
+            className="text-indigo-500 hover:text-indigo-600 hover:underline"
+          >
+            📁 Learn from a Project
+          </a>
+        </p>
         <p className="mt-2 text-center text-sm text-gray-400">{copy.hint}</p>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MindMap from "../components/mindmap/MindMap";
+import MaterialsLibrary from "../components/project/MaterialsLibrary";
 import { getConceptTree, type TreeNode } from "../lib/tauri";
 import { listen } from "@tauri-apps/api/event";
 
@@ -10,6 +11,7 @@ export default function MindMapPage() {
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [materialsOpen, setMaterialsOpen] = useState(false);
 
   const fetchTree = useCallback(async (slug: string) => {
     try {
@@ -66,9 +68,21 @@ export default function MindMapPage() {
         <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded">
           Knowledge Map
         </span>
+        <div className="flex-1" />
+        <button
+          onClick={() => setMaterialsOpen((prev) => !prev)}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            materialsOpen
+              ? "bg-primary text-white"
+              : "text-gray-400 hover:text-white hover:bg-gray-800"
+          }`}
+        >
+          📁 Materials
+        </button>
       </header>
 
       {/* Content */}
+      <div className="flex flex-1 min-h-0">
       <main className="flex-1 p-4 min-h-0">
         {loading && (
           <div className="flex items-center justify-center h-full">
@@ -98,6 +112,12 @@ export default function MindMapPage() {
           </div>
         )}
       </main>
+
+      <MaterialsLibrary
+        isOpen={materialsOpen}
+        onClose={() => setMaterialsOpen(false)}
+      />
+      </div>
     </div>
   );
 }

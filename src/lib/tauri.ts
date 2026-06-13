@@ -126,3 +126,42 @@ export function generateKnowledgeMap(input: {
 }): Promise<KnowledgeMapOutput> {
   return invoke("generate_knowledge_map", input);
 }
+
+// ---- Project Analysis ----
+
+export interface ProjectFile {
+  path: string;
+  relative_path: string;
+  size: number;
+  extension: string;
+  skipped: boolean;
+  skip_reason: string | null;
+}
+
+export interface ScanResult {
+  total_files: number;
+  included_files: ProjectFile[];
+  skipped_files: ProjectFile[];
+  estimated_tokens: number;
+}
+
+export interface FoundConcept {
+  name: string;
+  category: string;
+  files: string[];
+  line_refs: string[];
+}
+
+export interface CodeUnderstandingMap {
+  project_name: string;
+  tech_stack: string[];
+  concepts_found: FoundConcept[];
+}
+
+export function scanProjectFiles(path: string): Promise<ScanResult> {
+  return invoke("scan_project_files", { path });
+}
+
+export function analyzeProject(path: string): Promise<CodeUnderstandingMap> {
+  return invoke("analyze_project", { path });
+}
