@@ -83,3 +83,35 @@ export function listenChatStream(
     callback(event.payload);
   });
 }
+
+// ---- Knowledge Map ----
+
+export interface KnowledgeMapOutput {
+  topic_name: string;
+  topic_slug: string;
+  topic_type: string;
+  depth: string;
+  domains: Array<{
+    name: string;
+    slug: string;
+    concepts: Array<{
+      name: string;
+      slug: string;
+      description: string;
+      prerequisites: string[];
+      difficulty: string;
+      estimated_minutes: number;
+    }>;
+  }>;
+}
+
+export function generateKnowledgeMap(input: {
+  provider: string;
+  model: string;
+  topicName: string;
+  topicSlug: string;
+  topicType: string;
+  depth: string;
+}): Promise<KnowledgeMapOutput> {
+  return invoke("generate_knowledge_map", input);
+}

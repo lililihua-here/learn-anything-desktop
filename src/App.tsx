@@ -6,6 +6,8 @@ import SettingsPage from "./pages/SettingsPage";
 import CardLibrary from "./components/cards/CardLibrary";
 import ConceptsPage from "./pages/ConceptsPage";
 import TopicsPage from "./pages/TopicsPage";
+import TopicDetailPage from "./pages/TopicDetailPage";
+import RoutePreviewPage from "./pages/RoutePreviewPage";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { ToastContainer } from "./components/common/Toast";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -43,7 +45,8 @@ function AppInner() {
           <Route path="/cards" element={<CardLibrary />} />
           <Route path="/concepts" element={<ConceptsPage />} />
           <Route path="/topics" element={<TopicsPage />} />
-          <Route path="/topics/:topicSlug" element={<TopicsPage />} />
+          <Route path="/topics/:topic" element={<TopicDetailPage />} />
+          <Route path="/topics/:topic/preview" element={<RoutePreviewPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -2,6 +2,7 @@ pub mod ai;
 pub mod commands;
 pub mod db;
 pub mod pipeline;
+pub mod topic;
 
 use db::Database;
 use std::collections::HashMap;
@@ -47,6 +48,7 @@ pub fn run() {
             commands::chat::sync_card_queue,
             commands::chat::submit_quiz_answers,
             commands::chat::complete_session,
+            commands::topic::generate_knowledge_map,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
