@@ -1,19 +1,42 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./components/layout/AppLayout";
+import HomePage from "./pages/HomePage";
+import ChatPage from "./pages/ChatPage";
+import SettingsPage from "./pages/SettingsPage";
+import CardLibrary from "./components/cards/CardLibrary";
+import ConceptsPage from "./pages/ConceptsPage";
+import ErrorBoundary from "./components/common/ErrorBoundary";
+import { ToastContainer } from "./components/common/Toast";
+import { useSettingsStore } from "./stores/settingsStore";
+import { useEffect } from "react";
 
-function HomePage() {
+function AppInner() {
+  const theme = useSettingsStore((s) => s.theme);
+
+  useEffect(() => {
+    document.documentElement.className = theme === "dark" ? "dark" : "";
+  }, [theme]);
+
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
-      <h1 className="text-3xl font-bold text-primary">Learn Anything Tool Desktop</h1>
-    </div>
+    <BrowserRouter>
+      <ToastContainer />
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/learn/:concept" element={<ChatPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/cards" element={<CardLibrary />} />
+          <Route path="/concepts" element={<ConceptsPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <AppInner />
+    </ErrorBoundary>
   );
 }
