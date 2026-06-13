@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #6366f1;
+  --color-primary-light: #818cf8;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --radius-card: 16px;
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-width: 1024px;
+}
+
+@media (max-width: 1024px) {
+  body { min-width: auto; }
+}
