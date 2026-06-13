@@ -8,6 +8,7 @@ import ConceptsPage from "./pages/ConceptsPage";
 import TopicsPage from "./pages/TopicsPage";
 import TopicDetailPage from "./pages/TopicDetailPage";
 import RoutePreviewPage from "./pages/RoutePreviewPage";
+import MindMapPage from "./pages/MindMapPage";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { ToastContainer } from "./components/common/Toast";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -47,6 +48,7 @@ function AppInner() {
           <Route path="/topics" element={<TopicsPage />} />
           <Route path="/topics/:topic" element={<TopicDetailPage />} />
           <Route path="/topics/:topic/preview" element={<RoutePreviewPage />} />
+          <Route path="/mindmap/:topic" element={<MindMapPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

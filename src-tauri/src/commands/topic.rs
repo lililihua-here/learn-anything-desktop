@@ -1,4 +1,5 @@
 use crate::db::queries;
+use crate::db::queries::TreeNode;
 use crate::topic::{KnowledgeMapOutput, KnowledgeMapRaw};
 use crate::AppState;
 use serde_json::Value;
@@ -218,4 +219,18 @@ pub async fn generate_knowledge_map(
     let _ = app.emit("knowledge-map-updated", &output);
 
     Ok(output)
+}
+
+#[tauri::command]
+pub async fn get_concept_tree(
+    state: tauri::State<'_, AppState>,
+    topic_slug: String,
+) -> Result<TreeNode, String> {
+    let db = state
+        .db
+        .lock()
+        .map_err(|_| "Failed to lock database".to_string())?;
+    let conn = &db.query_conn;
+    queries::get_concept_tree(conn, &topic_slug)
+        .map_err(|e| format!("DB error (get_concept_tree): {}", e))
 }

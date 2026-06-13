@@ -105,6 +105,17 @@ export interface KnowledgeMapOutput {
   }>;
 }
 
+export interface TreeNode {
+  name: string;
+  slug: string;
+  status: string;
+  children: TreeNode[];
+}
+
+export function getConceptTree(topicSlug: string): Promise<TreeNode> {
+  return invoke("get_concept_tree", { topicSlug });
+}
+
 export function generateKnowledgeMap(input: {
   provider: string;
   model: string;
