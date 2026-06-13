@@ -452,3 +452,40 @@ pub fn award_achievement(conn: &Connection, id: &str) -> rusqlite::Result<()> {
     conn.execute("UPDATE achievements SET earned_at=datetime('now') WHERE id=?1", params![id])?;
     Ok(())
 }
+
+// Project analysis queries
+pub fn upsert_project_analysis(
+    conn: &Connection,
+    name: &str,
+    source_type: &str,
+    source_ref: &str,
+    analysis_json: &str,
+    coverage_summary: Option<&str>,
+    skipped_summary: Option<&str>,
+) -> rusqlite::Result<()> {
+    let existing_id: Option<String> = conn
+        .query_row(
+            "SELECT id FROM projects WHERE name=?1 AND source_type=?2 AND source_ref=?3",
+            params![name, source_type, source_ref],
+            |row| row.get(0),
+        )
+        .ok();
+
+    let coverage = coverage_summary.unwrap_or("");
+    let skipped = skipped_summary.unwrap_or("");
+
+    if let Some(id) = existing_id {
+        conn.execute(
+            "UPDATE projects SET analysis_json=?1, coverage_summary=?2, skipped_summary=?3, updated_at=datetime('now') WHERE id=?4",
+            params![analysis_json, coverage, skipped, id],
+        )?;
+    } else {
+        let id = uuid::Uuid::new_v4().to_string();
+        conn.execute(
+            "INSERT INTO projects (id, name, source_type, source_ref, analysis_json, coverage_summary, skipped_summary) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![id, name, source_type, source_ref, analysis_json, coverage, skipped],
+        )?;
+    }
+
+    Ok(())
+}

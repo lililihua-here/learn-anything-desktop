@@ -2,6 +2,7 @@ pub mod ai;
 pub mod commands;
 pub mod db;
 pub mod pipeline;
+pub mod project;
 pub mod topic;
 
 use db::Database;
@@ -50,6 +51,8 @@ pub fn run() {
             commands::chat::complete_session,
             commands::topic::generate_knowledge_map,
             commands::topic::get_concept_tree,
+            commands::project::analyze_project,
+            commands::project::scan_project_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
