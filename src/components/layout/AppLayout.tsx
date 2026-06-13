@@ -127,6 +127,12 @@ export default function AppLayout() {
               {copy.concepts}
             </Link>
             <Link
+              to="/topics"
+              className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            >
+              主题
+            </Link>
+            <Link
               to="/cards"
               className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >

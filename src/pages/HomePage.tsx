@@ -73,7 +73,19 @@ export default function HomePage() {
             {copy.onboarding}
           </div>
         )}
-        <p className="mt-4 text-center text-sm text-gray-400">{copy.hint}</p>
+        <p className="mt-4 text-center text-sm text-gray-400">
+          <a
+            href="/topics"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/topics");
+            }}
+            className="text-indigo-500 hover:text-indigo-600 hover:underline"
+          >
+            或浏览热门主题 →
+          </a>
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-400">{copy.hint}</p>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
 import CardLibrary from "./components/cards/CardLibrary";
 import ConceptsPage from "./pages/ConceptsPage";
+import TopicsPage from "./pages/TopicsPage";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { ToastContainer } from "./components/common/Toast";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -41,6 +42,8 @@ function AppInner() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/cards" element={<CardLibrary />} />
           <Route path="/concepts" element={<ConceptsPage />} />
+          <Route path="/topics" element={<TopicsPage />} />
+          <Route path="/topics/:topicSlug" element={<TopicsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
