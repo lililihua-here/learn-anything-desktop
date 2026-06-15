@@ -185,3 +185,36 @@ export function analyzeProject(
 ): Promise<CodeUnderstandingMap> {
   return invoke("analyze_project", { provider, model, path });
 }
+
+// ── Settings / API Key Management ────────────────────────────────────────────
+
+export interface ApiKeyStatus {
+  provider: string;
+  configured: boolean;
+}
+
+export function storeApiKey(
+  provider: string,
+  key: string,
+): Promise<void> {
+  return invoke("store_api_key", { provider, key });
+}
+
+export function getApiKeys(): Promise<ApiKeyStatus[]> {
+  return invoke("get_api_keys");
+}
+
+export function deleteApiKey(provider: string): Promise<void> {
+  return invoke("delete_api_key", { provider });
+}
+
+export function validateApiKey(
+  provider: string,
+  key: string,
+): Promise<boolean> {
+  return invoke("validate_api_key", { provider, key });
+}
+
+export function saveAppSetting(key: string, value: string): Promise<void> {
+  return invoke("save_settings", { key, value });
+}
