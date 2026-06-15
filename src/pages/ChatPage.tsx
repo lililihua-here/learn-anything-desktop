@@ -14,6 +14,7 @@ import {
 } from "../lib/tauri";
 import { generateSlug } from "../utils/slug";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useGamificationStore } from "../stores/gamificationStore";
 
 const L0_WINDOW_SIZE = 20;
 
@@ -111,6 +112,8 @@ export default function ChatPage() {
           }
           assistantBuffer.current = "";
           setStreaming(false);
+          // Record activity for gamification
+          void useGamificationStore.getState().recordActivity();
           break;
         case "error":
           setError(payload.content);

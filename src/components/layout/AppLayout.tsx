@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useSettingsStore } from "../../stores/settingsStore";
+import StreakBadge from "../gamification/StreakBadge";
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -113,6 +114,7 @@ export default function AppLayout() {
             {copy.title}
           </Link>
           <div className="flex-1" />
+          <StreakBadge compact />
           <nav className="flex items-center gap-2 text-sm">
             <Link
               to="/"

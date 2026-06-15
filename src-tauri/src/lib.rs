@@ -53,6 +53,10 @@ pub fn run() {
             commands::topic::get_concept_tree,
             commands::project::analyze_project,
             commands::project::scan_project_files,
+            commands::gamification::cmd_get_streak,
+            commands::gamification::cmd_record_activity,
+            commands::gamification::cmd_get_achievements,
+            commands::gamification::cmd_award_achievement,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

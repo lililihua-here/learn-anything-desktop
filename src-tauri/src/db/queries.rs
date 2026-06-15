@@ -439,6 +439,20 @@ pub fn update_streak(conn: &Connection, date: &str) -> rusqlite::Result<()> {
     Ok(())
 }
 
+pub fn update_streak_full(
+    conn: &Connection,
+    current_streak: i64,
+    longest_streak: i64,
+    total_days_learned: i64,
+    last_activity_date: &str,
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE learning_streaks SET current_streak=?1, longest_streak=?2, total_days_learned=?3, last_activity_date=?4, updated_at=datetime('now') WHERE id=(SELECT id FROM learning_streaks LIMIT 1)",
+        params![current_streak, longest_streak, total_days_learned, last_activity_date],
+    )?;
+    Ok(())
+}
+
 // Achievement queries
 pub fn get_achievements(conn: &Connection) -> rusqlite::Result<Vec<Achievement>> {
     let mut stmt = conn.prepare("SELECT id, name, description, icon, category, earned_at, created_at FROM achievements ORDER BY created_at")?;
