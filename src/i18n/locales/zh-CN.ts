@@ -1,0 +1,123 @@
+// Simplified Chinese (desktop) locale strings
+import type enLocale from "./en";
+
+const zhCN: typeof enLocale = {
+  app: {
+    title: "随便学点",
+    home: "首页",
+    history: "历史",
+    concepts: "概念",
+    cards: "卡片",
+    settings: "设置",
+    topics: "主题",
+  },
+  homepage: {
+    searchPlaceholder: "输入你想了解的概念...",
+    browseTopics: "浏览热门主题 →",
+    learnFromProject: "从代码项目学习 →",
+    tagline: "试试输入你最近听到但不太懂的技术词汇",
+  },
+  chat: {
+    inputPlaceholder: "输入你的回答或问题...",
+    streaming: "AI 正在回复...",
+    stop: "停止",
+    send: "发送",
+    welcome: "开始学习吧",
+  },
+  topics: {
+    title: "探索主题",
+    subtitle: "选择一个主题开始系统学习",
+    search: "搜索主题...",
+    notFound: "未找到主题，试试",
+    searchConcepts: "搜索概念",
+    domains: "个领域",
+  },
+  settings: {
+    title: "设置",
+    apiKey: "API Key",
+    provider: "提供商",
+    model: "模型",
+    theme: "主题",
+    language: "语言",
+    export: "导出数据",
+    import: "导入数据",
+    switchTheme: "切换到{mode}模式",
+  },
+  mindmap: {
+    title: "知识图谱",
+    back: "← 返回",
+    loading: "加载中...",
+    materials: "资料库",
+  },
+  routePreview: {
+    title: "学习路线",
+    selectConcepts: "选择你想学习的概念",
+    selected: "已选概念",
+    total: "总计",
+    startLearning: "开始学习",
+    addConcept: "添加概念...",
+    goBack: "返回",
+  },
+  project: {
+    scan: "扫描项目",
+    analyze: "开始分析",
+    learnFromProject: "从这个项目开始学习",
+    analyzing: "分析中...",
+    round1: "第一轮",
+    round2: "第二轮",
+    round3: "第三轮",
+  },
+  cards: {
+    title: "卡片库",
+    empty: "还没有卡片",
+    emptyHint: "掌握后的卡片会归档到这里",
+  },
+  concepts: {
+    title: "已学概念",
+    empty: "还没有已学概念",
+    emptyHint: "学过的概念会显示在这里",
+  },
+  history: {
+    title: "学习历史",
+    empty: "还没有学习记录",
+    completed: "已完成",
+    interrupted: "已中断",
+  },
+  session: {
+    complete: "学习完成！",
+    mastered: "已掌握",
+    toLearn: "待学习",
+    nextSteps: "下一步建议",
+    backHome: "返回首页",
+    continueLearning: "继续学习 →",
+  },
+  quiz: {
+    question: "第",
+    of: "/",
+    next: "下一题 →",
+    submit: "提交",
+    evaluating: "AI 正在评估...",
+    correct: "✅ 回答正确！",
+    incorrect: "❌ 回答错误",
+  },
+  offline: {
+    banner: "⚠️ 离线——部分功能受限",
+    chatUnavailable: "离线——聊天不可用。请浏览已有的学习资料。",
+  },
+  migration: {
+    export: "导出数据",
+    import: "导入数据",
+    exportDesc: "将学习数据保存到文件",
+    importDesc: "从备份恢复学习数据",
+    lastExport: "上次导出",
+    never: "从未",
+    confirmImport: "这将把备份数据与现有数据合并。是否继续？",
+  },
+  gamification: {
+    streak: "天连续",
+    best: "最长",
+    total: "总计",
+  },
+};
+
+export default zhCN;
