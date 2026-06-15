@@ -37,7 +37,7 @@ export function startChatStream(
   conceptName: string,
   messages: ChatMessage[],
   l1Context: string,
-  resumeSessionId?: string
+  resumeSessionId?: string,
 ): Promise<string> {
   return invoke("start_chat_stream", {
     provider,
@@ -56,7 +56,7 @@ export function stopChatStream(sessionId: string): Promise<void> {
 
 export function syncCardQueue(
   sessionId: string,
-  cards: CardQueueItem[]
+  cards: CardQueueItem[],
 ): Promise<void> {
   return invoke("sync_card_queue", { sessionId, cards });
 }
@@ -64,27 +64,25 @@ export function syncCardQueue(
 export function submitQuizAnswers(
   sessionId: string,
   conceptSlug: string,
-  submissions: QuizSubmission[]
+  submissions: QuizSubmission[],
 ): Promise<void> {
   return invoke("submit_quiz_answers", { sessionId, conceptSlug, submissions });
 }
 
 export function completeSession(
   sessionId: string,
-  status: string
+  status: string,
 ): Promise<void> {
   return invoke("complete_session", { sessionId, status });
 }
 
 export function listenChatStream(
-  callback: (payload: StreamPayload) => void
+  callback: (payload: StreamPayload) => void,
 ): Promise<UnlistenFn> {
   return listen<StreamPayload>("chat-stream-event", (event) => {
     callback(event.payload);
   });
 }
-
-// ---- Knowledge Map ----
 
 export interface KnowledgeMapOutput {
   topic_name: string;
@@ -112,6 +110,12 @@ export interface TreeNode {
   children: TreeNode[];
 }
 
+export interface KnowledgeMapUpdatedPayload {
+  topic_slug: string;
+  changed_concept_slug?: string | null;
+  reason: string;
+}
+
 export function getConceptTree(topicSlug: string): Promise<TreeNode> {
   return invoke("get_concept_tree", { topicSlug });
 }
@@ -127,7 +131,19 @@ export function generateKnowledgeMap(input: {
   return invoke("generate_knowledge_map", input);
 }
 
-// ---- Project Analysis ----
+export function persistKnowledgeMap(
+  knowledgeMap: KnowledgeMapOutput,
+): Promise<void> {
+  return invoke("persist_knowledge_map", { knowledgeMap });
+}
+
+export function listenKnowledgeMapUpdates(
+  callback: (payload: KnowledgeMapUpdatedPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<KnowledgeMapUpdatedPayload>("knowledge-map-updated", (event) => {
+    callback(event.payload);
+  });
+}
 
 export interface ProjectFile {
   path: string;
@@ -162,6 +178,10 @@ export function scanProjectFiles(path: string): Promise<ScanResult> {
   return invoke("scan_project_files", { path });
 }
 
-export function analyzeProject(path: string): Promise<CodeUnderstandingMap> {
-  return invoke("analyze_project", { path });
+export function analyzeProject(
+  provider: string,
+  model: string,
+  path: string,
+): Promise<CodeUnderstandingMap> {
+  return invoke("analyze_project", { provider, model, path });
 }

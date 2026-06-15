@@ -146,7 +146,10 @@ export default function ChatPage() {
     const slug = generateSlug(concept);
     setName(concept, slug);
 
-    const initialMsg: ChatMessage = { role: "user", content: `I want to learn about「${concept}」` };
+    const initialMsg: ChatMessage = {
+      role: "user",
+      content: `I want to learn about "${concept}".`,
+    };
     l0Buffer.current = [initialMsg];
 
     addMsg({ id: crypto.randomUUID(), role: "user", content: initialMsg.content });

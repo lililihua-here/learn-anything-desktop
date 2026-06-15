@@ -50,6 +50,7 @@ pub fn run() {
             commands::chat::submit_quiz_answers,
             commands::chat::complete_session,
             commands::topic::generate_knowledge_map,
+            commands::topic::persist_knowledge_map,
             commands::topic::get_concept_tree,
             commands::project::analyze_project,
             commands::project::scan_project_files,

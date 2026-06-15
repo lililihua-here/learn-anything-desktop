@@ -7,6 +7,8 @@ use std::path::Path;
 #[tauri::command]
 pub async fn analyze_project(
     state: tauri::State<'_, AppState>,
+    provider: String,
+    model: String,
     path: String,
 ) -> Result<CodeUnderstandingMap, String> {
     let root = Path::new(&path);
@@ -18,34 +20,27 @@ pub async fn analyze_project(
         return Err(format!("Path is not a directory: {}", path));
     }
 
-    // Step 1: Scan
     let scan = scanner::scan_project(root);
-
-    // Step 2: Derive project name from directory name
     let project_name = root
         .file_name()
-        .and_then(|n| n.to_str())
+        .and_then(|name| name.to_str())
         .unwrap_or("unknown")
         .to_string();
 
-    // Step 3: AI Analysis
-    let analysis = analysis::analyze_project(&project_name, &scan).await?;
+    let analysis = analysis::analyze_project(&project_name, &scan, &provider, &model).await?;
 
-    // Step 4: Persist to DB
+    let analysis_json =
+        serde_json::to_string(&analysis).map_err(|e| format!("Serialize error: {}", e))?;
+    let coverage_summary = format!(
+        "{} files analyzed, {} skipped, {} tokens estimated",
+        scan.included_files.len(),
+        scan.skipped_files.len(),
+        scan.estimated_tokens,
+    );
+    let skipped_summary = serde_json::to_string(&scan.skipped_files)
+        .map_err(|e| format!("Serialize skipped: {}", e))?;
+
     {
-        let analysis_json =
-            serde_json::to_string(&analysis).map_err(|e| format!("Serialize error: {}", e))?;
-
-        let coverage_summary = format!(
-            "{} files analyzed, {} skipped, {} tokens estimated",
-            scan.included_files.len(),
-            scan.skipped_files.len(),
-            scan.estimated_tokens,
-        );
-
-        let skipped_summary = serde_json::to_string(&scan.skipped_files)
-            .map_err(|e| format!("Serialize skipped: {}", e))?;
-
         let db = state
             .db
             .lock()
@@ -78,6 +73,5 @@ pub async fn scan_project_files(path: String) -> Result<ScanResult, String> {
         return Err(format!("Path is not a directory: {}", path));
     }
 
-    let scan = scanner::scan_project(root);
-    Ok(scan)
+    Ok(scanner::scan_project(root))
 }

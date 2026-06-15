@@ -14,9 +14,10 @@ export default function AppLayout() {
   const copy =
     locale === "zh-CN"
       ? {
-          title: "随便学点",
+          title: "Learn Anything",
           home: "首页",
           history: "历史",
+          topics: "主题",
           concepts: "概念",
           cards: "卡片",
           settings: "设置",
@@ -30,6 +31,7 @@ export default function AppLayout() {
           title: "Learn Anything",
           home: "Home",
           history: "History",
+          topics: "Topics",
           concepts: "Concepts",
           cards: "Cards",
           settings: "Settings",
@@ -101,7 +103,7 @@ export default function AppLayout() {
       </div>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center gap-3 border-b bg-white px-4 shrink-0">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-white px-4">
           {location.pathname !== "/" && (
             <button
               onClick={() => setSidebarOpen(true)}
@@ -123,16 +125,16 @@ export default function AppLayout() {
               {copy.home}
             </Link>
             <Link
+              to="/topics"
+              className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            >
+              {copy.topics}
+            </Link>
+            <Link
               to="/concepts"
               className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
               {copy.concepts}
-            </Link>
-            <Link
-              to="/topics"
-              className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-            >
-              主题
             </Link>
             <Link
               to="/cards"

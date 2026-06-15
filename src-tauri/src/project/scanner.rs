@@ -23,10 +23,9 @@ const SKIP_DIRS: &[&str] = &[
 ];
 
 const SKIP_EXTENSIONS: &[&str] = &[
-    "exe", "dll", "so", "dylib", "png", "jpg", "jpeg", "ico", "gif", "svg",
-    "lock", "map", "woff", "woff2", "ttf", "eot", "otf", "mp3", "mp4",
-    "avi", "mov", "webm", "ogg", "wav", "pdf", "zip", "tar", "gz",
-    "bz2", "xz", "7z", "rar", "wasm", "bin", "dat",
+    "exe", "dll", "so", "dylib", "png", "jpg", "jpeg", "ico", "gif", "svg", "lock", "map", "woff",
+    "woff2", "ttf", "eot", "otf", "mp3", "mp4", "avi", "mov", "webm", "ogg", "wav", "pdf", "zip",
+    "tar", "gz", "bz2", "xz", "7z", "rar", "wasm", "bin", "dat",
 ];
 
 const CONFIG_FILES: &[&str] = &[
@@ -48,10 +47,23 @@ const CONFIG_FILES: &[&str] = &[
 ];
 
 const ENTRY_PATTERNS: &[&str] = &[
-    "main.rs", "main.ts", "main.tsx", "main.js", "main.jsx", "main.py",
-    "App.tsx", "App.ts", "App.jsx", "App.js",
-    "index.ts", "index.tsx", "index.js", "index.jsx", "index.html",
-    "lib.rs", "mod.rs",
+    "main.rs",
+    "main.ts",
+    "main.tsx",
+    "main.js",
+    "main.jsx",
+    "main.py",
+    "App.tsx",
+    "App.ts",
+    "App.jsx",
+    "App.js",
+    "index.ts",
+    "index.tsx",
+    "index.js",
+    "index.jsx",
+    "index.html",
+    "lib.rs",
+    "mod.rs",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,10 +101,9 @@ fn file_priority(relative: &str, file_name: &str) -> u8 {
     }
     // Other source code files (in any directory, based on extension)
     let source_exts = [
-        "rs", "ts", "tsx", "js", "jsx", "py", "go", "java", "c", "cpp",
-        "h", "hpp", "cs", "rb", "php", "swift", "kt", "scala", "r",
-        "sh", "bash", "ps1", "sql", "graphql", "proto", "yaml", "yml",
-        "toml", "json", "xml", "css", "scss", "less", "html", "md", "mdx",
+        "rs", "ts", "tsx", "js", "jsx", "py", "go", "java", "c", "cpp", "h", "hpp", "cs", "rb",
+        "php", "swift", "kt", "scala", "r", "sh", "bash", "ps1", "sql", "graphql", "proto", "yaml",
+        "yml", "toml", "json", "xml", "css", "scss", "less", "html", "md", "mdx",
     ];
     let ext = Path::new(file_name)
         .extension()
@@ -212,7 +223,11 @@ pub fn scan_project(root: &Path) -> ScanResult {
         file_priority(rel, name)
     });
 
-    let estimated_tokens = included_files.iter().map(|f| f.size as usize).sum::<usize>() / 3;
+    let estimated_tokens = included_files
+        .iter()
+        .map(|f| f.size as usize)
+        .sum::<usize>()
+        / 3;
 
     ScanResult {
         total_files,

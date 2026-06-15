@@ -1,0 +1,11 @@
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\siphasher-506a881a2045bae9.d: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\common.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\sip.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\sip128.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\../README.md
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libsiphasher-506a881a2045bae9.rlib: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\common.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\sip.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\sip128.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\../README.md
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libsiphasher-506a881a2045bae9.rmeta: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\common.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\sip.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\sip128.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\../README.md
+
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\lib.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\common.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\sip.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\sip128.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\siphasher-1.0.3\src\../README.md:

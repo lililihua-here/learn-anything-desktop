@@ -11,7 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
   mastered: "#22c55e",
   in_progress: "#eab308",
   needs_practice: "#ef4444",
-  unexplored: "#9ca3af",
+  unexplored: "#94a3b8",
 };
 
 const NODE_RADIUS = 8;
@@ -19,7 +19,6 @@ const NODE_RADIUS = 8;
 export default function MindMap({ data, onNodeClick }: MindMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   const render = useCallback(() => {
     const container = containerRef.current;
@@ -28,16 +27,14 @@ export default function MindMap({ data, onNodeClick }: MindMapProps) {
 
     const width = container.clientWidth;
     const height = container.clientHeight;
+    const isDark = document.documentElement.classList.contains("dark");
 
-    // Clear previous content
     svg.innerHTML = "";
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.setAttribute("width", String(width));
     svg.setAttribute("height", String(height));
 
     const g = d3.select(svg).append("g");
-
-    // Set up zoom
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.3, 3])
@@ -45,76 +42,64 @@ export default function MindMap({ data, onNodeClick }: MindMapProps) {
         g.attr("transform", event.transform.toString());
       });
 
-    zoomRef.current = zoom;
-
     d3.select(svg)
       .call(zoom)
-      // Do not reset zoom transform on double-click (let dblclick be a no-op on zoom)
       .on("dblclick.zoom", null);
 
-    // Initial centered transform
     const initialTransform = d3.zoomIdentity.translate(width / 2, 60);
     d3.select(svg).call(zoom.transform, initialTransform);
 
-    // Build hierarchy (capture as point node so TS knows positions exist)
-    const hir = d3.hierarchy(data);
     const root = d3
       .tree<TreeNode>()
       .size([width - 200, height - 120])
-      .nodeSize([180, 80])(hir);
+      .nodeSize([180, 80])(d3.hierarchy(data));
 
-    // Draw links
     const linkGen = d3
       .linkVertical<d3.HierarchyPointLink<TreeNode>, d3.HierarchyPointNode<TreeNode>>()
-      .x((d) => d.x)
-      .y((d) => d.y);
+      .x((node) => node.x)
+      .y((node) => node.y);
 
     g.append("g")
       .attr("fill", "none")
-      .attr("stroke", "#6b7280")
+      .attr("stroke", isDark ? "#475569" : "#cbd5e1")
       .attr("stroke-width", 1.5)
       .selectAll("path")
       .data(root.links())
       .join("path")
-      .attr("d", (d) => linkGen(d));
+      .attr("d", (node) => linkGen(node));
 
-    // Draw nodes
     const nodeGroup = g
       .append("g")
       .selectAll("g")
       .data(root.descendants())
       .join("g")
-      .attr("transform", (d) => `translate(${d.x},${d.y})`)
+      .attr("transform", (node) => `translate(${node.x},${node.y})`)
       .style("cursor", "pointer")
-      .on("click", (_event, d) => {
-        onNodeClick(d.data.slug);
+      .on("click", (_event, node) => {
+        onNodeClick(node.data.slug);
       });
 
-    // Circles
     nodeGroup
       .append("circle")
       .attr("r", NODE_RADIUS)
-      .attr("fill", (d) => STATUS_COLORS[d.data.status] ?? STATUS_COLORS.unexplored)
-      .attr("stroke", "#fff")
+      .attr("fill", (node) => STATUS_COLORS[node.data.status] ?? STATUS_COLORS.unexplored)
+      .attr("stroke", isDark ? "#0f172a" : "#ffffff")
       .attr("stroke-width", 2);
 
-    // Labels
     nodeGroup
       .append("text")
       .attr("dy", NODE_RADIUS + 14)
       .attr("text-anchor", "middle")
-      .attr("font-size", (d) => (d.depth === 0 ? 13 : 11))
-      .attr("font-weight", (d) => (d.depth === 0 ? "bold" : "normal"))
-      .attr("fill", "#e5e7eb")
-      .text((d) => d.data.name);
+      .attr("font-size", (node) => (node.depth === 0 ? 13 : 11))
+      .attr("font-weight", (node) => (node.depth === 0 ? "bold" : "normal"))
+      .attr("fill", isDark ? "#e2e8f0" : "#334155")
+      .text((node) => node.data.name);
   }, [data, onNodeClick]);
 
-  // Render on mount and when data/onNodeClick change
   useEffect(() => {
     render();
   }, [render]);
 
-  // ResizeObserver for container resize
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -127,8 +112,11 @@ export default function MindMap({ data, onNodeClick }: MindMapProps) {
   }, [render]);
 
   return (
-    <div ref={containerRef} className="w-full h-full min-h-[400px] bg-gray-900 rounded-lg overflow-hidden">
-      <svg ref={svgRef} className="w-full h-full" />
+    <div
+      ref={containerRef}
+      className="h-full min-h-[400px] w-full overflow-hidden rounded-lg bg-white dark:bg-slate-900"
+    >
+      <svg ref={svgRef} className="h-full w-full" />
     </div>
   );
 }

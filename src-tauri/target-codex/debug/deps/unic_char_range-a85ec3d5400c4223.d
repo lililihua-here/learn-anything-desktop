@@ -1,0 +1,17 @@
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\unic_char_range-a85ec3d5400c4223.d: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\pkg_info.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\iter.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\range.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\macros.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\step.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\iter_fused.rs
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libunic_char_range-a85ec3d5400c4223.rlib: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\pkg_info.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\iter.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\range.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\macros.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\step.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\iter_fused.rs
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libunic_char_range-a85ec3d5400c4223.rmeta: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\pkg_info.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\iter.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\range.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\macros.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\step.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\iter_fused.rs
+
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\lib.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\pkg_info.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\iter.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\range.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\macros.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\step.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\unic-char-range-0.9.0\src\iter_fused.rs:
+
+# env-dep:CARGO_PKG_DESCRIPTION=UNIC — Unicode Character Tools — Character Range and Iteration
+# env-dep:CARGO_PKG_NAME=unic-char-range
+# env-dep:CARGO_PKG_VERSION=0.9.0

@@ -1,2 +1,2 @@
-pub mod scanner;
 pub mod analysis;
+pub mod scanner;

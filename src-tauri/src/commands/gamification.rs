@@ -13,12 +13,48 @@ fn seed_achievements(conn: &rusqlite::Connection) -> Result<(), String> {
     }
 
     let achievements = [
-        ("first_learn", "First Steps", "Complete your first day of learning", "🎓", "learning"),
-        ("streak_3", "Getting Warm", "Maintain a 3-day learning streak", "🔥", "streak"),
-        ("streak_7", "On Fire", "Maintain a 7-day learning streak", "💪", "streak"),
-        ("streak_30", "Unstoppable", "Maintain a 30-day learning streak", "🏆", "streak"),
-        ("total_10", "Dedicated Learner", "Learn for 10 total days", "📚", "learning"),
-        ("total_50", "Knowledge Seeker", "Learn for 50 total days", "🧠", "learning"),
+        (
+            "first_learn",
+            "First Steps",
+            "Complete your first day of learning",
+            "🎓",
+            "learning",
+        ),
+        (
+            "streak_3",
+            "Getting Warm",
+            "Maintain a 3-day learning streak",
+            "🔥",
+            "streak",
+        ),
+        (
+            "streak_7",
+            "On Fire",
+            "Maintain a 7-day learning streak",
+            "💪",
+            "streak",
+        ),
+        (
+            "streak_30",
+            "Unstoppable",
+            "Maintain a 30-day learning streak",
+            "🏆",
+            "streak",
+        ),
+        (
+            "total_10",
+            "Dedicated Learner",
+            "Learn for 10 total days",
+            "📚",
+            "learning",
+        ),
+        (
+            "total_50",
+            "Knowledge Seeker",
+            "Learn for 50 total days",
+            "🧠",
+            "learning",
+        ),
     ];
 
     for (id, name, description, icon, category) in &achievements {
@@ -33,9 +69,7 @@ fn seed_achievements(conn: &rusqlite::Connection) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn cmd_get_streak(
-    state: State<'_, AppState>,
-) -> Result<Option<Streak>, String> {
+pub async fn cmd_get_streak(state: State<'_, AppState>) -> Result<Option<Streak>, String> {
     let db = state
         .db
         .lock()
@@ -49,9 +83,7 @@ pub async fn cmd_get_streak(
 }
 
 #[tauri::command]
-pub async fn cmd_record_activity(
-    state: State<'_, AppState>,
-) -> Result<Streak, String> {
+pub async fn cmd_record_activity(state: State<'_, AppState>) -> Result<Streak, String> {
     let db = state
         .db
         .lock()
@@ -63,8 +95,8 @@ pub async fn cmd_record_activity(
 
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
 
-    let existing = queries::get_streak(conn)
-        .map_err(|e| format!("DB error (get_streak): {}", e))?;
+    let existing =
+        queries::get_streak(conn).map_err(|e| format!("DB error (get_streak): {}", e))?;
 
     match existing {
         Some(mut streak) => {
@@ -131,9 +163,7 @@ pub async fn cmd_record_activity(
 }
 
 #[tauri::command]
-pub async fn cmd_get_achievements(
-    state: State<'_, AppState>,
-) -> Result<Vec<Achievement>, String> {
+pub async fn cmd_get_achievements(state: State<'_, AppState>) -> Result<Vec<Achievement>, String> {
     let db = state
         .db
         .lock()
@@ -142,8 +172,7 @@ pub async fn cmd_get_achievements(
 
     seed_achievements(conn)?;
 
-    queries::get_achievements(conn)
-        .map_err(|e| format!("DB error (get_achievements): {}", e))
+    queries::get_achievements(conn).map_err(|e| format!("DB error (get_achievements): {}", e))
 }
 
 #[tauri::command]

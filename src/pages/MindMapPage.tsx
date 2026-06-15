@@ -2,8 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MindMap from "../components/mindmap/MindMap";
 import MaterialsLibrary from "../components/project/MaterialsLibrary";
-import { getConceptTree, type TreeNode } from "../lib/tauri";
-import { listen } from "@tauri-apps/api/event";
+import {
+  getConceptTree,
+  listenKnowledgeMapUpdates,
+  type TreeNode,
+} from "../lib/tauri";
 
 export default function MindMapPage() {
   const { topic = "" } = useParams<{ topic: string }>();
@@ -26,46 +29,49 @@ export default function MindMapPage() {
     }
   }, []);
 
-  // Fetch on mount
   useEffect(() => {
     if (topic) {
-      fetchTree(topic);
+      void fetchTree(topic);
     }
   }, [topic, fetchTree]);
 
-  // Subscribe to knowledge-map-updated event
   useEffect(() => {
-    const unlisten = listen<TreeNode>("knowledge-map-updated", (_event) => {
-      if (topic) {
-        fetchTree(topic);
+    if (!topic) return;
+
+    let dispose: (() => void) | undefined;
+    listenKnowledgeMapUpdates((payload) => {
+      if (payload.topic_slug === topic) {
+        void fetchTree(topic);
       }
+    }).then((unlisten) => {
+      dispose = unlisten;
     });
+
     return () => {
-      unlisten.then((fn) => fn());
+      dispose?.();
     };
   }, [topic, fetchTree]);
 
   const handleNodeClick = useCallback(
     (slug: string) => {
-      navigate(`/learn/${slug}`);
+      navigate(`/learn/${encodeURIComponent(slug)}`);
     },
     [navigate],
   );
 
   return (
-    <div className="flex flex-col h-full min-h-screen bg-gray-950 text-gray-100">
-      {/* Header */}
-      <header className="flex items-center gap-4 px-6 py-4 border-b border-gray-800 bg-gray-900 shrink-0">
+    <div className="flex h-full flex-col bg-gray-50">
+      <header className="flex shrink-0 items-center gap-4 border-b bg-white px-6 py-4">
         <button
-          onClick={() => navigate(-1)}
-          className="text-sm text-gray-400 hover:text-white transition-colors"
+          onClick={() => navigate("/")}
+          className="text-sm text-indigo-500 transition-colors hover:text-indigo-600"
         >
-          &larr; Back
+          返回首页
         </button>
-        <h1 className="text-lg font-semibold">
+        <h1 className="text-lg font-semibold text-gray-900">
           {tree ? tree.name : topic}
         </h1>
-        <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded">
+        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
           Knowledge Map
         </span>
         <div className="flex-1" />
@@ -73,50 +79,49 @@ export default function MindMapPage() {
           onClick={() => setMaterialsOpen((prev) => !prev)}
           className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             materialsOpen
-              ? "bg-primary text-white"
-              : "text-gray-400 hover:text-white hover:bg-gray-800"
+              ? "bg-indigo-500 text-white"
+              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
           }`}
         >
-          📁 Materials
+          学习资料
         </button>
       </header>
 
-      {/* Content */}
-      <div className="flex flex-1 min-h-0">
-      <main className="flex-1 p-4 min-h-0">
-        {loading && (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-          </div>
-        )}
+      <div className="flex min-h-0 flex-1">
+        <main className="min-h-0 flex-1 p-4">
+          {loading && (
+            <div className="flex h-full items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+            </div>
+          )}
 
-        {error && (
-          <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-            <p className="text-red-400">{error}</p>
-            <button
-              onClick={() => fetchTree(topic)}
-              className="px-4 py-2 rounded bg-primary text-white text-sm hover:bg-primary-light transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        )}
+          {error && (
+            <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+              <p className="text-red-500">{error}</p>
+              <button
+                onClick={() => void fetchTree(topic)}
+                className="rounded bg-indigo-500 px-4 py-2 text-sm text-white hover:bg-indigo-600"
+              >
+                重试
+              </button>
+            </div>
+          )}
 
-        {!loading && !error && tree && (
-          <MindMap data={tree} onNodeClick={handleNodeClick} />
-        )}
+          {!loading && !error && tree && (
+            <MindMap data={tree} onNodeClick={handleNodeClick} />
+          )}
 
-        {!loading && !error && !tree && (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            No data available for this topic.
-          </div>
-        )}
-      </main>
+          {!loading && !error && !tree && (
+            <div className="flex h-full items-center justify-center text-gray-500">
+              当前主题还没有可展示的知识图谱。
+            </div>
+          )}
+        </main>
 
-      <MaterialsLibrary
-        isOpen={materialsOpen}
-        onClose={() => setMaterialsOpen(false)}
-      />
+        <MaterialsLibrary
+          isOpen={materialsOpen}
+          onClose={() => setMaterialsOpen(false)}
+        />
       </div>
     </div>
   );

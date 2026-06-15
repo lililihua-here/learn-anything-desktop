@@ -1,0 +1,11 @@
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\foldhash-6e705b4720a095db.d: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\fast.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\quality.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\seed.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\convenience.rs
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libfoldhash-6e705b4720a095db.rlib: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\fast.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\quality.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\seed.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\convenience.rs
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libfoldhash-6e705b4720a095db.rmeta: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\fast.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\quality.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\seed.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\convenience.rs
+
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\lib.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\fast.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\quality.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\seed.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\foldhash-0.2.0\src\convenience.rs:

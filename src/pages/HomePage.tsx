@@ -15,13 +15,17 @@ export default function HomePage() {
           placeholder: "你想学什么？",
           submit: "开始",
           onboarding: "开始第一次学习前，请先在设置中选择 AI provider。",
-          hint: "输入一个你听过但还没真正理解的技术概念",
+          browseTopics: "或浏览热门主题",
+          learnFromProject: "从项目代码开始学习",
+          hint: "试着输入一个你听过但还没真正理解的技术概念",
         }
       : {
           tags: ["What is an API?", "Python basics", "Closures", "How HTTP works", "Git basics"],
           placeholder: "What do you want to learn?",
           submit: "Go",
           onboarding: "Choose your AI provider in Settings before starting the first learning session.",
+          browseTopics: "Browse popular topics",
+          learnFromProject: "Learn from a code project",
           hint: "Try entering a technical term you've heard but don't fully understand",
         };
 
@@ -82,7 +86,7 @@ export default function HomePage() {
             }}
             className="text-indigo-500 hover:text-indigo-600 hover:underline"
           >
-            或浏览热门主题 →
+            {copy.browseTopics}
           </a>
         </p>
         <p className="mt-2 text-center text-sm text-gray-400">
@@ -94,7 +98,7 @@ export default function HomePage() {
             }}
             className="text-indigo-500 hover:text-indigo-600 hover:underline"
           >
-            📁 Learn from a Project
+            {copy.learnFromProject}
           </a>
         </p>
         <p className="mt-2 text-center text-sm text-gray-400">{copy.hint}</p>

@@ -27,8 +27,8 @@ pub struct CodeUnderstandingMap {
 /// Read a file, truncating to PER_FILE_CHAR_LIMIT characters.
 /// Returns (content, truncated_flag).
 fn read_file_content(path: &str) -> Result<(String, bool), String> {
-    let full = std::fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read {}: {}", path, e))?;
+    let full =
+        std::fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path, e))?;
     if full.chars().count() > PER_FILE_CHAR_LIMIT {
         let truncated: String = full.chars().take(PER_FILE_CHAR_LIMIT).collect();
         Ok((truncated, true))
@@ -72,8 +72,26 @@ fn build_file_summary(files: &[&ProjectFile], char_budget: usize) -> String {
     buf
 }
 
-/// Send a prompt to the Anthropic API and get the text response.
-async fn call_anthropic(prompt: &str, api_key: &str) -> Result<String, String> {
+fn resolve_api_key(provider: &str) -> Result<String, String> {
+    let env_name = match provider {
+        "anthropic" => "ANTHROPIC_API_KEY",
+        _ => return Err(format!("Unsupported provider: {}", provider)),
+    };
+    std::env::var(env_name)
+        .map_err(|_| format!("API key not configured for provider: {}", provider))
+}
+
+/// Send a prompt to the provider endpoint and get the text response.
+async fn call_llm(
+    prompt: &str,
+    api_key: &str,
+    provider: &str,
+    model: &str,
+) -> Result<String, String> {
+    if provider != "anthropic" {
+        return Err(format!("Unsupported provider: {}", provider));
+    }
+
     let client = reqwest::Client::builder()
         .timeout(REQUEST_TIMEOUT)
         .connect_timeout(std::time::Duration::from_secs(10))
@@ -81,7 +99,7 @@ async fn call_anthropic(prompt: &str, api_key: &str) -> Result<String, String> {
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
     let body = serde_json::json!({
-        "model": "claude-sonnet-4-20250514",
+        "model": model,
         "max_tokens": 4096,
         "system": "You are a code analysis expert. Always respond with valid JSON only. No markdown, no explanation.",
         "messages": [
@@ -151,6 +169,8 @@ async fn round1_tech_stack(
     project_name: &str,
     files: &[ProjectFile],
     api_key: &str,
+    provider: &str,
+    model: &str,
 ) -> Result<(Vec<String>, Vec<FoundConcept>), String> {
     // Use only the highest-priority files (configs + entry files) for Round 1
     let round1_files: Vec<&ProjectFile> = files
@@ -185,15 +205,24 @@ Identify:
         file_summary = file_summary,
     );
 
-    let resp_text = call_anthropic(&prompt, api_key).await?;
+    let resp_text = call_llm(&prompt, api_key, provider, model).await?;
     let json_str = extract_json(&resp_text);
 
-    let parsed: Value = serde_json::from_str(&json_str)
-        .map_err(|e| format!("Round 1 JSON parse error: {} -- raw: {}", e, &json_str[..json_str.len().min(500)]))?;
+    let parsed: Value = serde_json::from_str(&json_str).map_err(|e| {
+        format!(
+            "Round 1 JSON parse error: {} -- raw: {}",
+            e,
+            &json_str[..json_str.len().min(500)]
+        )
+    })?;
 
     let tech_stack: Vec<String> = parsed["tech_stack"]
         .as_array()
-        .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
         .unwrap_or_default();
 
     let concepts: Vec<FoundConcept> = parsed["concepts"]
@@ -206,11 +235,19 @@ Identify:
                         category: v["category"].as_str().unwrap_or("unknown").to_string(),
                         files: v["files"]
                             .as_array()
-                            .map(|fa| fa.iter().filter_map(|fv| fv.as_str().map(|s| s.to_string())).collect())
+                            .map(|fa| {
+                                fa.iter()
+                                    .filter_map(|fv| fv.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
                             .unwrap_or_default(),
                         line_refs: v["line_refs"]
                             .as_array()
-                            .map(|la| la.iter().filter_map(|lv| lv.as_str().map(|s| s.to_string())).collect())
+                            .map(|la| {
+                                la.iter()
+                                    .filter_map(|lv| lv.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
                             .unwrap_or_default(),
                     })
                 })
@@ -227,6 +264,8 @@ async fn round2_deep_dive(
     files: &[ProjectFile],
     existing_concepts: &[FoundConcept],
     api_key: &str,
+    provider: &str,
+    model: &str,
 ) -> Result<Vec<FoundConcept>, String> {
     let round2_files: Vec<&ProjectFile> = files
         .iter()
@@ -272,11 +311,16 @@ Find NEW concepts NOT already listed above. Focus on:
         file_summary = file_summary,
     );
 
-    let resp_text = call_anthropic(&prompt, api_key).await?;
+    let resp_text = call_llm(&prompt, api_key, provider, model).await?;
     let json_str = extract_json(&resp_text);
 
-    let parsed: Value = serde_json::from_str(&json_str)
-        .map_err(|e| format!("Round 2 JSON parse error: {} -- raw: {}", e, &json_str[..json_str.len().min(500)]))?;
+    let parsed: Value = serde_json::from_str(&json_str).map_err(|e| {
+        format!(
+            "Round 2 JSON parse error: {} -- raw: {}",
+            e,
+            &json_str[..json_str.len().min(500)]
+        )
+    })?;
 
     let new_concepts: Vec<FoundConcept> = parsed["new_concepts"]
         .as_array()
@@ -288,11 +332,19 @@ Find NEW concepts NOT already listed above. Focus on:
                         category: v["category"].as_str().unwrap_or("unknown").to_string(),
                         files: v["files"]
                             .as_array()
-                            .map(|fa| fa.iter().filter_map(|fv| fv.as_str().map(|s| s.to_string())).collect())
+                            .map(|fa| {
+                                fa.iter()
+                                    .filter_map(|fv| fv.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
                             .unwrap_or_default(),
                         line_refs: v["line_refs"]
                             .as_array()
-                            .map(|la| la.iter().filter_map(|lv| lv.as_str().map(|s| s.to_string())).collect())
+                            .map(|la| {
+                                la.iter()
+                                    .filter_map(|lv| lv.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
                             .unwrap_or_default(),
                     })
                 })
@@ -309,6 +361,8 @@ async fn round3_cross_reference(
     files: &[ProjectFile],
     all_concepts: &[FoundConcept],
     api_key: &str,
+    provider: &str,
+    model: &str,
 ) -> Result<Vec<FoundConcept>, String> {
     let round3_files: Vec<&ProjectFile> = files
         .iter()
@@ -352,11 +406,16 @@ async fn round3_cross_reference(
         file_summary = file_summary,
     );
 
-    let resp_text = call_anthropic(&prompt, api_key).await?;
+    let resp_text = call_llm(&prompt, api_key, provider, model).await?;
     let json_str = extract_json(&resp_text);
 
-    let parsed: Value = serde_json::from_str(&json_str)
-        .map_err(|e| format!("Round 3 JSON parse error: {} -- raw: {}", e, &json_str[..json_str.len().min(500)]))?;
+    let parsed: Value = serde_json::from_str(&json_str).map_err(|e| {
+        format!(
+            "Round 3 JSON parse error: {} -- raw: {}",
+            e,
+            &json_str[..json_str.len().min(500)]
+        )
+    })?;
 
     let gap_concepts: Vec<FoundConcept> = parsed["gap_concepts"]
         .as_array()
@@ -368,11 +427,19 @@ async fn round3_cross_reference(
                         category: v["category"].as_str().unwrap_or("unknown").to_string(),
                         files: v["files"]
                             .as_array()
-                            .map(|fa| fa.iter().filter_map(|fv| fv.as_str().map(|s| s.to_string())).collect())
+                            .map(|fa| {
+                                fa.iter()
+                                    .filter_map(|fv| fv.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
                             .unwrap_or_default(),
                         line_refs: v["line_refs"]
                             .as_array()
-                            .map(|la| la.iter().filter_map(|lv| lv.as_str().map(|s| s.to_string())).collect())
+                            .map(|la| {
+                                la.iter()
+                                    .filter_map(|lv| lv.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
                             .unwrap_or_default(),
                     })
                 })
@@ -387,9 +454,10 @@ async fn round3_cross_reference(
 pub async fn analyze_project(
     project_name: &str,
     scan: &ScanResult,
+    provider: &str,
+    model: &str,
 ) -> Result<CodeUnderstandingMap, String> {
-    let api_key = std::env::var("ANTHROPIC_API_KEY")
-        .map_err(|_| "ANTHROPIC_API_KEY environment variable not set".to_string())?;
+    let api_key = resolve_api_key(provider)?;
 
     if scan.included_files.is_empty() {
         return Ok(CodeUnderstandingMap {
@@ -403,21 +471,35 @@ pub async fn analyze_project(
 
     // Round 1: Tech stack + initial concepts
     let (tech_stack, round1_concepts) =
-        round1_tech_stack(project_name, inc_files, &api_key).await?;
+        round1_tech_stack(project_name, inc_files, &api_key, provider, model).await?;
 
     let mut all_concepts = round1_concepts;
 
     // Round 2: Deep dive (only if we have enough files)
     if inc_files.len() > 10 {
-        let round2_concepts =
-            round2_deep_dive(project_name, inc_files, &all_concepts, &api_key).await?;
+        let round2_concepts = round2_deep_dive(
+            project_name,
+            inc_files,
+            &all_concepts,
+            &api_key,
+            provider,
+            model,
+        )
+        .await?;
         all_concepts.extend(round2_concepts);
     }
 
     // Round 3: Cross-reference (only if we have enough files)
     if inc_files.len() > 50 {
-        let round3_concepts =
-            round3_cross_reference(project_name, inc_files, &all_concepts, &api_key).await?;
+        let round3_concepts = round3_cross_reference(
+            project_name,
+            inc_files,
+            &all_concepts,
+            &api_key,
+            provider,
+            model,
+        )
+        .await?;
         all_concepts.extend(round3_concepts);
     }
 

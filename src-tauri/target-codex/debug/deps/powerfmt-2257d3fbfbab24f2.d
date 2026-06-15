@@ -1,0 +1,11 @@
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\powerfmt-2257d3fbfbab24f2.d: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\buf.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\ext.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\smart_display.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\smart_display_impls.rs
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libpowerfmt-2257d3fbfbab24f2.rlib: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\buf.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\ext.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\smart_display.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\smart_display_impls.rs
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libpowerfmt-2257d3fbfbab24f2.rmeta: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\buf.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\ext.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\smart_display.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\smart_display_impls.rs
+
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\lib.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\buf.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\ext.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\smart_display.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\powerfmt-0.2.0\src\smart_display_impls.rs:

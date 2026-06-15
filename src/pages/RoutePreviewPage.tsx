@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { KnowledgeMapOutput } from "../lib/tauri";
+import { persistKnowledgeMap, type KnowledgeMapOutput } from "../lib/tauri";
+import { generateSlug } from "../utils/slug";
 
 type Difficulty = "beginner" | "intermediate" | "advanced";
 
@@ -13,7 +14,6 @@ interface LocalConcept {
   description: string;
   difficulty: Difficulty;
   estimatedMinutes: number;
-  isCustom: boolean;
   selected: boolean;
 }
 
@@ -45,15 +45,13 @@ function nextId(): string {
 export default function RoutePreviewPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const knowledgeMap = location.state?.knowledgeMap as
-    | KnowledgeMapOutput
-    | undefined;
+  const knowledgeMap = location.state?.knowledgeMap as KnowledgeMapOutput | undefined;
 
   const [concepts, setConcepts] = useState<LocalConcept[]>(() => {
     if (!knowledgeMap) return [];
     return knowledgeMap.domains.flatMap((domain) =>
-      domain.concepts.map((concept) => ({
-        id: `${domain.slug}-${concept.slug}`,
+      domain.concepts.map((concept, index) => ({
+        id: `${domain.slug}-${concept.slug}-${index}`,
         domainSlug: domain.slug,
         domainName: domain.name,
         name: concept.name,
@@ -61,327 +59,324 @@ export default function RoutePreviewPage() {
         description: concept.description,
         difficulty: normalizeDifficulty(concept.difficulty),
         estimatedMinutes: concept.estimated_minutes,
-        isCustom: false,
         selected: true,
       })),
     );
   });
-
-  const [addFormVisible, setAddFormVisible] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newDifficulty, setNewDifficulty] = useState<Difficulty>("intermediate");
   const [newMinutes, setNewMinutes] = useState(15);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectedConcepts = concepts.filter((c) => c.selected);
+  const selectedConcepts = useMemo(
+    () => concepts.filter((concept) => concept.selected),
+    [concepts],
+  );
+
   const totalMinutes = selectedConcepts.reduce(
-    (sum, c) => sum + c.estimatedMinutes,
+    (sum, concept) => sum + concept.estimatedMinutes,
     0,
   );
 
-  const groupedByDomain = concepts.reduce<
-    Record<string, { domainName: string; concepts: LocalConcept[] }>
-  >((acc, c) => {
-    if (!acc[c.domainSlug]) {
-      acc[c.domainSlug] = { domainName: c.domainName, concepts: [] };
-    }
-    acc[c.domainSlug].concepts.push(c);
-    return acc;
-  }, {});
-
   const toggleSelect = (id: string) => {
     setConcepts((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, selected: !c.selected } : c)),
+      prev.map((concept) =>
+        concept.id === id ? { ...concept, selected: !concept.selected } : concept,
+      ),
     );
   };
 
   const removeConcept = (id: string) => {
-    setConcepts((prev) => prev.filter((c) => c.id !== id));
+    setConcepts((prev) => prev.filter((concept) => concept.id !== id));
+  };
+
+  const moveConcept = (id: string, direction: -1 | 1) => {
+    setConcepts((prev) => {
+      const index = prev.findIndex((concept) => concept.id === id);
+      const target = index + direction;
+      if (index === -1 || target < 0 || target >= prev.length) {
+        return prev;
+      }
+
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(target, 0, item);
+      return next;
+    });
   };
 
   const addCustomConcept = () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    const id = nextId();
-    const slug = trimmed
-      .toLowerCase()
-      .replace(/[^\w一-鿿]+/g, "-")
-      .replace(/^-|-$/g, "");
-    const newConcept: LocalConcept = {
-      id,
-      domainSlug: "custom",
-      domainName: "Custom",
-      name: trimmed,
-      slug,
-      description: newDescription.trim() || "Custom added concept",
-      difficulty: newDifficulty,
-      estimatedMinutes: newMinutes,
-      isCustom: true,
-      selected: true,
-    };
-    setConcepts((prev) => [...prev, newConcept]);
+
+    setConcepts((prev) => [
+      ...prev,
+      {
+        id: nextId(),
+        domainSlug: "custom",
+        domainName: "Custom",
+        name: trimmed,
+        slug: generateSlug(trimmed),
+        description: newDescription.trim() || "Custom added concept",
+        difficulty: newDifficulty,
+        estimatedMinutes: newMinutes,
+        selected: true,
+      },
+    ]);
     setNewName("");
     setNewDescription("");
     setNewDifficulty("intermediate");
     setNewMinutes(15);
-    setAddFormVisible(false);
   };
 
-  // ---- Empty state: no knowledge map data ----
+  const buildPersistedMap = (): KnowledgeMapOutput | null => {
+    if (!knowledgeMap) return null;
+
+    const orderedDomains = new Map<
+      string,
+      { name: string; slug: string; concepts: KnowledgeMapOutput["domains"][number]["concepts"] }
+    >();
+
+    selectedConcepts.forEach((concept) => {
+      if (!orderedDomains.has(concept.domainSlug)) {
+        orderedDomains.set(concept.domainSlug, {
+          name: concept.domainName,
+          slug: concept.domainSlug,
+          concepts: [],
+        });
+      }
+
+      orderedDomains.get(concept.domainSlug)?.concepts.push({
+        name: concept.name,
+        slug: concept.slug,
+        description: concept.description,
+        prerequisites: [],
+        difficulty: concept.difficulty,
+        estimated_minutes: concept.estimatedMinutes,
+      });
+    });
+
+    return {
+      ...knowledgeMap,
+      domains: Array.from(orderedDomains.values()),
+    };
+  };
+
+  const handleStartLearning = async () => {
+    const persistedMap = buildPersistedMap();
+    if (!persistedMap || selectedConcepts.length === 0) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+      await persistKnowledgeMap(persistedMap);
+      navigate(`/mindmap/${encodeURIComponent(persistedMap.topic_slug)}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!knowledgeMap) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-center space-y-4">
-          <h2 className="text-lg font-semibold text-gray-700">
-            No route data
-          </h2>
-          <p className="text-sm text-gray-400">
-            Please generate a knowledge map first.
-          </p>
+        <div className="space-y-4 text-center">
+          <h2 className="text-lg font-semibold text-gray-700">没有可预览的路径数据</h2>
+          <p className="text-sm text-gray-400">请先生成知识图谱。</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-sm text-indigo-500 hover:text-indigo-600 transition-colors"
+            className="text-sm text-indigo-500 transition-colors hover:text-indigo-600"
           >
-            Go back
+            返回上一页
           </button>
         </div>
       </div>
     );
   }
 
-  // ---- Main view ----
   return (
     <div className="flex h-full">
-      {/* ===== Left: Concept list ===== */}
       <div className="flex-1 overflow-y-auto px-6 py-6">
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              {knowledgeMap.topic_name}
-            </h1>
+            <h1 className="text-xl font-bold text-gray-900">{knowledgeMap.topic_name}</h1>
             <p className="mt-1 text-sm text-gray-400">
-              Route preview — toggle or remove concepts to adjust your learning
-              path
+              在开始学习前，先删减、补充并调整你的学习顺序。
             </p>
           </div>
           <button
-            onClick={() =>
-              navigate(
-                `/topics/${encodeURIComponent(knowledgeMap.topic_name)}`,
-              )
-            }
-            className="shrink-0 text-sm text-indigo-500 hover:text-indigo-600 transition-colors"
+            onClick={() => navigate(-1)}
+            className="shrink-0 text-sm text-indigo-500 transition-colors hover:text-indigo-600"
           >
-            Back to topic
+            返回主题配置
           </button>
         </div>
 
-        {/* Domain groups */}
-        {Object.entries(groupedByDomain).map(([domainSlug, domain]) => (
-          <div key={domainSlug} className="mb-8">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-400">
-              {domain.domainName}
-            </h2>
-            <div className="space-y-2">
-              {domain.concepts.map((concept, idx) => (
+        <div className="space-y-3">
+          {concepts.map((concept, index) => (
+            <div
+              key={concept.id}
+              className={`rounded-xl border px-4 py-3 transition-all ${
+                concept.selected
+                  ? "border-indigo-200 bg-white shadow-sm"
+                  : "border-gray-200 bg-gray-50 opacity-70"
+              }`}
+            >
+              <div className="flex items-start gap-3">
                 <button
-                  key={concept.id}
+                  type="button"
                   onClick={() => toggleSelect(concept.id)}
-                  className={`w-full rounded-xl border px-4 py-3 text-left transition-all ${
+                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
                     concept.selected
-                      ? "border-indigo-300 bg-indigo-50/50 shadow-sm"
-                      : "border-gray-200 bg-white opacity-60"
+                      ? "bg-indigo-500 text-white"
+                      : "bg-gray-200 text-gray-500"
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    {/* Sequence number */}
+                  {index + 1}
+                </button>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-gray-800">{concept.name}</span>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                      {concept.domainName}
+                    </span>
                     <span
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-                        concept.selected
-                          ? "bg-indigo-500 text-white"
-                          : "bg-gray-200 text-gray-500"
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        DIFFICULTY_COLORS[concept.difficulty]
                       }`}
                     >
-                      {idx + 1}
+                      {DIFFICULTY_LABELS[concept.difficulty]}
                     </span>
-
-                    {/* Concept info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-sm font-medium ${
-                            concept.selected
-                              ? "text-gray-900"
-                              : "text-gray-500"
-                          }`}
-                        >
-                          {concept.name}
-                        </span>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                            DIFFICULTY_COLORS[concept.difficulty]
-                          }`}
-                        >
-                          {DIFFICULTY_LABELS[concept.difficulty]}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-gray-400 truncate">
-                        {concept.description}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-300">
-                        ~{concept.estimatedMinutes} min
-                      </p>
-                    </div>
-
-                    {/* Delete button — only on selected concepts */}
-                    {concept.selected && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeConcept(concept.id);
-                        }}
-                        className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                        title="Remove concept"
-                      >
-                        &#x2715;
-                      </button>
-                    )}
                   </div>
-                </button>
-              ))}
+                  <p className="mt-1 text-sm text-gray-500">{concept.description}</p>
+                  <p className="mt-1 text-xs text-gray-400">预计 {concept.estimatedMinutes} 分钟</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => moveConcept(concept.id, -1)}
+                    disabled={index === 0}
+                    className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    上移
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveConcept(concept.id, 1)}
+                    disabled={index === concepts.length - 1}
+                    className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    下移
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeConcept(concept.id)}
+                    className="rounded-lg border border-red-200 px-2 py-1 text-xs text-red-500 hover:bg-red-50"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 rounded-xl border border-dashed border-gray-300 bg-white p-4">
+          <h2 className="text-sm font-semibold text-gray-700">补充自定义概念</h2>
+          <div className="mt-3 space-y-3">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="概念名称"
+              className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+            <input
+              type="text"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              placeholder="概念说明"
+              className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+            <div className="flex gap-2">
+              <select
+                value={newDifficulty}
+                onChange={(e) => setNewDifficulty(e.target.value as Difficulty)}
+                className="h-10 rounded-lg border border-gray-200 px-3 text-sm"
+              >
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+              <input
+                type="number"
+                value={newMinutes}
+                min={1}
+                onChange={(e) => setNewMinutes(Math.max(1, Number(e.target.value) || 0))}
+                className="h-10 w-28 rounded-lg border border-gray-200 px-3 text-sm"
+              />
+              <button
+                type="button"
+                onClick={addCustomConcept}
+                disabled={!newName.trim()}
+                className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-indigo-300"
+              >
+                添加
+              </button>
             </div>
           </div>
-        ))}
-
-        {/* ---- Add concept form ---- */}
-        <div className="mt-2 pb-8">
-          {addFormVisible ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Concept name"
-                className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                autoFocus
-              />
-              <input
-                type="text"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Description (optional)"
-                className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              />
-              <div className="flex gap-2">
-                <select
-                  value={newDifficulty}
-                  onChange={(e) =>
-                    setNewDifficulty(e.target.value as Difficulty)
-                  }
-                  className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:border-indigo-400 focus:outline-none"
-                >
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </select>
-                <input
-                  type="number"
-                  value={newMinutes}
-                  onChange={(e) =>
-                    setNewMinutes(Math.max(1, Number(e.target.value) || 0))
-                  }
-                  min={1}
-                  placeholder="Minutes"
-                  className="h-10 w-24 rounded-lg border border-gray-200 px-3 text-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={addCustomConcept}
-                  disabled={!newName.trim()}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
-                    newName.trim()
-                      ? "bg-indigo-500 hover:bg-indigo-600"
-                      : "bg-indigo-300 cursor-not-allowed"
-                  }`}
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => setAddFormVisible(false)}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAddFormVisible(true)}
-              className="flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-gray-300 py-3 text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-colors"
-            >
-              + Add custom concept
-            </button>
-          )}
         </div>
       </div>
 
-      {/* ===== Right: Sidebar ===== */}
-      <div className="w-72 shrink-0 border-l border-gray-100 bg-gray-50/50 p-6 flex flex-col">
-        <h3 className="text-sm font-semibold text-gray-700">Route Summary</h3>
+      <div className="flex w-72 shrink-0 flex-col border-l border-gray-100 bg-gray-50/50 p-6">
+        <h3 className="text-sm font-semibold text-gray-700">路线摘要</h3>
 
         <div className="mt-4 space-y-3">
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <p className="text-xs text-gray-400">Selected concepts</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {selectedConcepts.length}
-            </p>
+            <p className="text-xs text-gray-400">已选概念</p>
+            <p className="text-2xl font-bold text-gray-900">{selectedConcepts.length}</p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <p className="text-xs text-gray-400">Estimated total time</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {totalMinutes} min
-            </p>
+            <p className="text-xs text-gray-400">预计总时长</p>
+            <p className="text-2xl font-bold text-gray-900">{totalMinutes} 分钟</p>
           </div>
         </div>
 
         <div className="mt-6 flex-1 overflow-hidden">
-          <h4 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
-            Learning path
+          <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-400">
+            学习顺序
           </h4>
-          <div className="space-y-1 max-h-64 overflow-y-auto">
-            {selectedConcepts.slice(0, 20).map((concept, idx) => (
-              <div
-                key={concept.id}
-                className="flex items-center gap-2 text-xs text-gray-600"
-              >
+          <div className="max-h-64 space-y-1 overflow-y-auto">
+            {selectedConcepts.map((concept, index) => (
+              <div key={concept.id} className="flex items-center gap-2 text-xs text-gray-600">
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-medium text-indigo-600">
-                  {idx + 1}
+                  {index + 1}
                 </span>
                 <span className="truncate">{concept.name}</span>
               </div>
             ))}
-            {selectedConcepts.length > 20 && (
-              <p className="text-xs text-gray-400 pt-1">
-                ...and {selectedConcepts.length - 20} more
-              </p>
-            )}
           </div>
         </div>
 
+        {error && (
+          <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+            {error}
+          </div>
+        )}
+
         <button
-          onClick={() =>
-            navigate(`/mindmap/${encodeURIComponent(knowledgeMap.topic_name)}`)
-          }
-          disabled={selectedConcepts.length === 0}
+          onClick={handleStartLearning}
+          disabled={selectedConcepts.length === 0 || saving}
           className={`mt-4 w-full rounded-xl py-3 text-sm font-medium text-white transition-all ${
-            selectedConcepts.length > 0
-              ? "bg-indigo-500 hover:bg-indigo-600 shadow-sm"
-              : "bg-indigo-300 cursor-not-allowed"
+            selectedConcepts.length > 0 && !saving
+              ? "bg-indigo-500 shadow-sm hover:bg-indigo-600"
+              : "cursor-not-allowed bg-indigo-300"
           }`}
         >
-          Start Learning
+          {saving ? "正在保存路径..." : "进入知识图谱"}
         </button>
       </div>
     </div>

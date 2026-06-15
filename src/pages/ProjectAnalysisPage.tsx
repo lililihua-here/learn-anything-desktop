@@ -1,13 +1,15 @@
-import { useCallback, useState } from "react";
+import { type DragEvent, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  scanProjectFiles,
   analyzeProject,
-  type ScanResult,
+  persistKnowledgeMap,
+  scanProjectFiles,
   type CodeUnderstandingMap,
+  type KnowledgeMapOutput,
+  type ScanResult,
 } from "../lib/tauri";
-
-// ---- Types ----
+import { useSettingsStore } from "../stores/settingsStore";
+import { generateSlug } from "../utils/slug";
 
 type Phase =
   | "idle"
@@ -20,10 +22,10 @@ type Phase =
 type AnalysisRound = "round1" | "round2" | "round3" | "done";
 
 const ROUND_LABELS: Record<AnalysisRound, string> = {
-  round1: "Round 1: Identifying tech stack and initial concepts...",
-  round2: "Round 2: Deep-diving into source files...",
-  round3: "Round 3: Cross-referencing remaining files...",
-  done: "Analysis complete.",
+  round1: "第 1 轮：识别技术栈和入口文件",
+  round2: "第 2 轮：深入核心源码",
+  round3: "第 3 轮：补充剩余模块和缺口",
+  done: "分析完成",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -51,16 +53,63 @@ function estimateCost(tokenCount: number): string {
   return `~ $${(tokensM * inputPricePerMtok).toFixed(2)}`;
 }
 
-// ---- Component ----
+function buildKnowledgeMapFromProject(
+  analysis: CodeUnderstandingMap,
+): KnowledgeMapOutput {
+  const grouped = new Map<
+    string,
+    KnowledgeMapOutput["domains"][number]
+  >();
+
+  analysis.concepts_found.forEach((concept, index) => {
+    const domainSlug = generateSlug(concept.category || "project-concepts");
+    const domainName = concept.category || "Project Concepts";
+    if (!grouped.has(domainSlug)) {
+      grouped.set(domainSlug, {
+        name: domainName,
+        slug: domainSlug,
+        concepts: [],
+      });
+    }
+
+    grouped.get(domainSlug)?.concepts.push({
+      name: concept.name,
+      slug: generateSlug(`${concept.category}-${concept.name}-${index}`),
+      description:
+        concept.files.length > 0
+          ? `来自 ${concept.files[0]} 的项目概念`
+          : "从项目结构中提炼的概念",
+      prerequisites: [],
+      difficulty: "intermediate",
+      estimated_minutes: 15,
+    });
+  });
+
+  return {
+    topic_name: analysis.project_name,
+    topic_slug: generateSlug(analysis.project_name),
+    topic_type: "programming",
+    depth: "project",
+    domains: Array.from(grouped.values()),
+  };
+}
 
 export default function ProjectAnalysisPage() {
   const navigate = useNavigate();
+  const provider = useSettingsStore((s) => s.provider);
+  const model = useSettingsStore((s) => s.model);
   const [path, setPath] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [analysisResult, setAnalysisResult] = useState<CodeUnderstandingMap | null>(null);
   const [analysisRound, setAnalysisRound] = useState<AnalysisRound>("round1");
   const [error, setError] = useState<string | null>(null);
+  const [savingRoute, setSavingRoute] = useState(false);
+
+  const projectKnowledgeMap = useMemo(
+    () => (analysisResult ? buildKnowledgeMapFromProject(analysisResult) : null),
+    [analysisResult],
+  );
 
   const handleScan = useCallback(async () => {
     const trimmed = path.trim();
@@ -91,45 +140,52 @@ export default function ProjectAnalysisPage() {
       setAnalysisResult(null);
       setAnalysisRound("round1");
 
-      // Simulate 3-round progress for UX
-      const round2Timer = setTimeout(() => setAnalysisRound("round2"), 3000);
-      const round3Timer = setTimeout(() => setAnalysisRound("round3"), 6000);
+      const round2Timer = setTimeout(() => setAnalysisRound("round2"), 1500);
+      const round3Timer = setTimeout(() => setAnalysisRound("round3"), 3000);
 
-      const result = await analyzeProject(trimmed);
+      const result = await analyzeProject(provider, model, trimmed);
       clearTimeout(round2Timer);
       clearTimeout(round3Timer);
       setAnalysisRound("done");
-
       setAnalysisResult(result);
       setPhase("analysis-complete");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setPhase("error");
     }
-  }, [path, scanResult]);
+  }, [model, path, provider, scanResult]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // In Tauri, dragged folders may expose files via DataTransfer
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const first = files[0];
-      // Attempt to extract a path-like string
       setPath((first as { path?: string }).path ?? first.name ?? "");
     }
   }, []);
 
-  const handleLearnFromProject = useCallback(() => {
-    if (analysisResult) {
-      navigate(`/topics/${encodeURIComponent(analysisResult.project_name)}`);
+  const handleLearnFromProject = useCallback(async () => {
+    if (!projectKnowledgeMap) return;
+
+    try {
+      setSavingRoute(true);
+      setError(null);
+      await persistKnowledgeMap(projectKnowledgeMap);
+      navigate(`/topics/${encodeURIComponent(projectKnowledgeMap.topic_name)}/preview`, {
+        state: { knowledgeMap: projectKnowledgeMap },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSavingRoute(false);
     }
-  }, [navigate, analysisResult]);
+  }, [navigate, projectKnowledgeMap]);
 
   const handleReset = useCallback(() => {
     setPhase("idle");
@@ -137,50 +193,47 @@ export default function ProjectAnalysisPage() {
     setAnalysisResult(null);
     setError(null);
     setAnalysisRound("round1");
+    setSavingRoute(false);
   }, []);
-
-  // ---- Render helpers ----
 
   const renderIdle = () => (
     <div className="flex h-full items-center justify-center p-8">
       <div className="w-full max-w-xl">
         <h1 className="mb-2 text-2xl font-bold text-gray-800 dark:text-gray-100">
-          Project Analysis
+          项目分析
         </h1>
         <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-          Select a project folder to scan and analyze its codebase structure, tech stack, and key concepts.
+          先扫描项目，再在预算内做三轮 AI 分析，最后把提炼出的概念送进学习路径。
         </p>
 
-        {/* Drag-drop zone */}
         <div
           className={`mb-4 rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${
             path.trim()
-              ? "border-primary bg-primary/5"
-              : "border-gray-300 bg-gray-50 hover:border-primary hover:bg-primary/5 dark:border-gray-600 dark:bg-gray-800"
+              ? "border-indigo-400 bg-indigo-50/60"
+              : "border-gray-300 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-gray-600 dark:bg-gray-800"
           }`}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
-          <div className="text-3xl mb-2">📁</div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-            Drag a project folder here, or type the path below
+          <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
+            拖入项目文件夹，或者直接输入本地路径
           </p>
           <input
             type="text"
             value={path}
             onChange={(e) => setPath(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleScan()}
-            placeholder="e.g. /home/user/my-project or C:\Projects\my-app"
-            className="h-12 w-full max-w-md rounded-xl border border-gray-200 px-4 text-sm shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+            onKeyDown={(e) => e.key === "Enter" && void handleScan()}
+            placeholder="例如 D:\Projects\my-app"
+            className="h-12 w-full max-w-md rounded-xl border border-gray-200 px-4 text-sm shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           />
         </div>
 
         <button
-          onClick={handleScan}
+          onClick={() => void handleScan()}
           disabled={!path.trim()}
-          className="w-full rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-light disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-xl bg-indigo-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Scan Project
+          扫描项目
         </button>
       </div>
     </div>
@@ -189,9 +242,11 @@ export default function ProjectAnalysisPage() {
   const renderScanning = () => (
     <div className="flex h-full items-center justify-center p-8">
       <div className="text-center">
-        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <p className="text-sm text-gray-500 dark:text-gray-400">Scanning project files...</p>
-        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 font-mono max-w-md truncate">{path}</p>
+        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        <p className="text-sm text-gray-500 dark:text-gray-400">正在扫描项目文件...</p>
+        <p className="mt-1 max-w-md truncate font-mono text-xs text-gray-400 dark:text-gray-500">
+          {path}
+        </p>
       </div>
     </div>
   );
@@ -199,20 +254,20 @@ export default function ProjectAnalysisPage() {
   const renderScanComplete = () => (
     <div className="flex h-full items-center justify-center p-8">
       <div className="w-full max-w-xl">
-        <h2 className="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">Scan Results</h2>
+        <h2 className="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">扫描结果</h2>
 
         {scanResult && (
           <div className="mb-6 grid grid-cols-2 gap-3">
-            <StatCard label="Total Files" value={scanResult.total_files.toLocaleString()} />
-            <StatCard label="Included" value={scanResult.included_files.length.toLocaleString()} />
-            <StatCard label="Skipped" value={scanResult.skipped_files.length.toLocaleString()} />
-            <StatCard label="Est. Tokens" value={scanResult.estimated_tokens.toLocaleString()} />
+            <StatCard label="总文件数" value={scanResult.total_files.toLocaleString()} />
+            <StatCard label="参与分析" value={scanResult.included_files.length.toLocaleString()} />
+            <StatCard label="已跳过" value={scanResult.skipped_files.length.toLocaleString()} />
+            <StatCard label="预估 Tokens" value={scanResult.estimated_tokens.toLocaleString()} />
           </div>
         )}
 
         {scanResult && (
           <div className="mb-3 rounded-lg border border-gray-100 bg-gray-50 p-3 text-center dark:border-gray-700 dark:bg-gray-800">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Estimated cost: </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">预估费用：</span>
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
               {estimateCost(scanResult.estimated_tokens)}
             </span>
@@ -224,13 +279,13 @@ export default function ProjectAnalysisPage() {
             onClick={handleReset}
             className="flex-1 rounded-xl border border-gray-200 px-6 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            Back
+            返回
           </button>
           <button
-            onClick={handleAnalyze}
-            className="flex-1 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-light"
+            onClick={() => void handleAnalyze()}
+            className="flex-1 rounded-xl bg-indigo-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-600"
           >
-            Start Analysis
+            开始分析
           </button>
         </div>
       </div>
@@ -240,13 +295,13 @@ export default function ProjectAnalysisPage() {
   const renderAnalyzing = () => (
     <div className="flex h-full items-center justify-center p-8">
       <div className="w-full max-w-xl text-center">
-        <div className="mx-auto mb-6 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="mx-auto mb-6 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         <p className="mb-4 text-sm font-medium text-gray-700 dark:text-gray-200">
           {ROUND_LABELS[analysisRound]}
         </p>
         <div className="mx-auto flex max-w-xs gap-2">
-          <StepBubble active={analysisRound === "round1"} done={false} label="R1" />
-          <StepBubble active={analysisRound === "round2"} done={analysisRound === "done" || analysisRound === "round3"} label="R2" />
+          <StepBubble active={analysisRound === "round1"} done={analysisRound !== "round1"} label="R1" />
+          <StepBubble active={analysisRound === "round2"} done={analysisRound === "round3" || analysisRound === "done"} label="R2" />
           <StepBubble active={analysisRound === "round3"} done={analysisRound === "done"} label="R3" />
         </div>
       </div>
@@ -254,15 +309,14 @@ export default function ProjectAnalysisPage() {
   );
 
   const renderAnalysisComplete = () => (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="mx-auto max-w-3xl p-8">
       <h2 className="mb-6 text-xl font-bold text-gray-800 dark:text-gray-100">
-        Analysis: {analysisResult?.project_name ?? "Untitled"}
+        分析结果：{analysisResult?.project_name ?? "Untitled"}
       </h2>
 
-      {/* Tech Stack */}
       {analysisResult && analysisResult.tech_stack.length > 0 && (
         <div className="mb-6">
-          <h3 className="mb-2 text-sm font-semibold text-gray-600 dark:text-gray-300">Tech Stack</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-600 dark:text-gray-300">技术栈</h3>
           <div className="flex flex-wrap gap-2">
             {analysisResult.tech_stack.map((tech) => (
               <span
@@ -276,16 +330,15 @@ export default function ProjectAnalysisPage() {
         </div>
       )}
 
-      {/* Concepts Found */}
       {analysisResult && analysisResult.concepts_found.length > 0 && (
         <div className="mb-6">
           <h3 className="mb-3 text-sm font-semibold text-gray-600 dark:text-gray-300">
-            Concepts Found ({analysisResult.concepts_found.length})
+            提炼出的概念 ({analysisResult.concepts_found.length})
           </h3>
           <div className="space-y-3">
             {analysisResult.concepts_found.map((concept) => (
               <div
-                key={concept.name}
+                key={`${concept.category}-${concept.name}`}
                 className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
               >
                 <div className="mb-2 flex items-center gap-2">
@@ -331,27 +384,25 @@ export default function ProjectAnalysisPage() {
         </div>
       )}
 
-      {analysisResult && analysisResult.concepts_found.length === 0 && analysisResult.tech_stack.length === 0 && (
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-center dark:border-gray-700 dark:bg-gray-800">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No concepts or tech stack were identified. The project may be empty or unsupported.
-          </p>
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
         </div>
       )}
 
-      {/* Actions */}
       <div className="flex gap-3">
         <button
           onClick={handleReset}
           className="flex-1 rounded-xl border border-gray-200 px-6 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
         >
-          Analyze Another
+          分析其他项目
         </button>
         <button
-          onClick={handleLearnFromProject}
-          className="flex-1 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-light"
+          onClick={() => void handleLearnFromProject()}
+          disabled={!projectKnowledgeMap || savingRoute}
+          className="flex-1 rounded-xl bg-indigo-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-indigo-300"
         >
-          Learn from this Project →
+          {savingRoute ? "正在生成学习路径..." : "把结果送入学习路径"}
         </button>
       </div>
     </div>
@@ -360,20 +411,17 @@ export default function ProjectAnalysisPage() {
   const renderError = () => (
     <div className="flex h-full items-center justify-center p-8">
       <div className="w-full max-w-xl text-center">
-        <div className="mb-4 text-4xl">⚠️</div>
-        <h2 className="mb-2 text-lg font-semibold text-red-600 dark:text-red-400">Error</h2>
-        <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 break-all">{error}</p>
+        <h2 className="mb-2 text-lg font-semibold text-red-600 dark:text-red-400">分析失败</h2>
+        <p className="mb-6 break-all text-sm text-gray-500 dark:text-gray-400">{error}</p>
         <button
           onClick={handleReset}
-          className="rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-light"
+          className="rounded-xl bg-indigo-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-600"
         >
-          Try Again
+          重试
         </button>
       </div>
     </div>
   );
-
-  // ---- Main render ----
 
   switch (phase) {
     case "idle":
@@ -393,8 +441,6 @@ export default function ProjectAnalysisPage() {
   }
 }
 
-// ---- Sub-components ----
-
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -413,9 +459,9 @@ function StepBubble({
   done: boolean;
   label: string;
 }) {
-  let cls = "flex-1 h-1.5 rounded-full transition-colors ";
+  let cls = "h-1.5 flex-1 rounded-full transition-colors ";
   if (done) cls += "bg-green-500";
-  else if (active) cls += "bg-primary animate-pulse";
+  else if (active) cls += "bg-indigo-500 animate-pulse";
   else cls += "bg-gray-200 dark:bg-gray-600";
 
   return (
@@ -426,7 +472,7 @@ function StepBubble({
           done
             ? "text-green-600 dark:text-green-400"
             : active
-              ? "text-primary"
+              ? "text-indigo-500"
               : "text-gray-400 dark:text-gray-500"
         }`}
       >

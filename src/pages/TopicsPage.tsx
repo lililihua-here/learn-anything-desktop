@@ -12,25 +12,25 @@ const TOPICS: Topic[] = [
   {
     name: "Python 基础",
     slug: "python-ji-chu",
-    description: "学习 Python 编程语言的核心语法、数据结构与常用标准库，打下扎实的编程基础。",
+    description: "学习 Python 语法、常用数据结构与标准库，建立稳定的编程基础。",
     domainCount: 12,
   },
   {
     name: "JavaScript 入门",
     slug: "javascript-ru-men",
-    description: "掌握 JavaScript 语言基础、DOM 操作、事件处理及浏览器 API 的使用。",
+    description: "掌握 JavaScript 基础、DOM 操作、事件处理与浏览器 API。",
     domainCount: 10,
   },
   {
     name: "计算机网络",
     slug: "ji-suan-ji-wang-luo",
-    description: "理解网络协议栈、TCP/IP、HTTP、DNS 等核心概念，构建网络知识体系。",
+    description: "理解协议栈、TCP/IP、HTTP、DNS 等核心概念，搭建网络认知框架。",
     domainCount: 8,
   },
   {
     name: "数据结构",
     slug: "shu-ju-jie-gou",
-    description: "学习数组、链表、栈、队列、树、图等经典数据结构及其应用场景。",
+    description: "学习数组、链表、栈、队列、树和图等经典结构及其使用场景。",
     domainCount: 15,
   },
   {
@@ -42,7 +42,7 @@ const TOPICS: Topic[] = [
   {
     name: "Linux 基础",
     slug: "linux-ji-chu",
-    description: "学习 Linux 命令行操作、文件系统权限、进程管理与 Shell 脚本编程。",
+    description: "学习 Linux 命令行、文件权限、进程管理与 Shell 脚本。",
     domainCount: 9,
   },
 ];
@@ -62,7 +62,7 @@ export default function TopicsPage() {
         <div className="mb-6">
           <h1 className="text-xl font-bold text-gray-900">热门学习主题</h1>
           <p className="mt-1 text-sm text-gray-500">
-            选择一个主题，开始系统化学习
+            选择一个主题，进入系统化学习模式
           </p>
         </div>
 
@@ -79,7 +79,7 @@ export default function TopicsPage() {
         {filtered.length === 0 ? (
           <div className="py-16 text-center text-gray-400">
             <p className="text-base">没有匹配的主题</p>
-            <p className="mt-1 text-xs">试试其他关键词</p>
+            <p className="mt-1 text-xs">试试别的关键词</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">

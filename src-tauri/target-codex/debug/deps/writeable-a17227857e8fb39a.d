@@ -1,0 +1,11 @@
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\writeable-a17227857e8fb39a.d: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\cmp.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\concat.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\impls.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\ops.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\parts_write_adapter.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\try_writeable.rs
+
+D:\Python\学习系统\learn-anything-main(1)\learn-anything-desktop\src-tauri\target-codex\debug\deps\libwriteable-a17227857e8fb39a.rmeta: C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\lib.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\cmp.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\concat.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\impls.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\ops.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\parts_write_adapter.rs C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\try_writeable.rs
+
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\lib.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\cmp.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\concat.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\impls.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\ops.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\parts_write_adapter.rs:
+C:\Users\xiaoming\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\writeable-0.6.3\src\try_writeable.rs:
