@@ -2,6 +2,7 @@ pub mod ai;
 pub mod commands;
 pub mod db;
 pub mod pipeline;
+pub mod providers;
 pub mod project;
 pub mod topic;
 
