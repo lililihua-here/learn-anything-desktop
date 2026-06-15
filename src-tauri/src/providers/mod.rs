@@ -1,6 +1,8 @@
 pub mod traits;
 pub mod anthropic;
 pub mod openai;
+pub mod deepseek;
+pub mod qwen;
 
 use std::collections::HashMap;
 use traits::ProviderAdapter;
@@ -36,11 +38,13 @@ impl ProviderRegistry {
     }
 
     /// Create a registry pre-populated with the built-in adapters
-    /// (Anthropic and OpenAI).
+    /// (Anthropic, OpenAI, DeepSeek, and Qwen).
     pub fn default() -> Self {
         let mut registry = Self::new();
         registry.register(Box::new(anthropic::AnthropicAdapter::new()));
         registry.register(Box::new(openai::OpenAIAdapter::new()));
+        registry.register(Box::new(deepseek::DeepSeekAdapter::new()));
+        registry.register(Box::new(qwen::QwenAdapter::new()));
         registry
     }
 }

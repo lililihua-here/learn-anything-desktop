@@ -14,7 +14,7 @@ use super::traits::{
 /// - Subsequent chunks: `{index: 0, function: {arguments: "..."}}` (append)
 /// State is keyed by tool-call index to support multiple parallel tool calls.
 #[derive(Debug, Default)]
-struct StreamParseState {
+pub struct StreamParseState {
     tool_states: HashMap<i64, ToolCallState>,
     /// Tracks whether we have seen a finish_reason
     finished: bool,
@@ -31,14 +31,18 @@ struct ToolCallState {
 /// Uses the standard `v1/chat/completions` endpoint with `Bearer` auth.
 /// Compatible with any OpenAI-compatible provider (DeepSeek, Qwen, GLM, etc.)
 /// that follows the same wire protocol.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct OpenAIAdapter {
-    parse_state: StreamParseState,
+    pub provider_name: &'static str,
+    pub endpoint: String,
+    pub parse_state: StreamParseState,
 }
 
 impl OpenAIAdapter {
     pub fn new() -> Self {
         Self {
+            provider_name: "openai",
+            endpoint: "https://api.openai.com/v1/chat/completions".to_string(),
             parse_state: StreamParseState::default(),
         }
     }
@@ -46,11 +50,11 @@ impl OpenAIAdapter {
 
 impl ProviderAdapter for OpenAIAdapter {
     fn provider_name(&self) -> &'static str {
-        "openai"
+        self.provider_name
     }
 
     fn chat_endpoint(&self) -> &str {
-        "https://api.openai.com/v1/chat/completions"
+        &self.endpoint
     }
 
     fn auth_header(&self, api_key: &str) -> (String, String) {
