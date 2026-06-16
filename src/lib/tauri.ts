@@ -218,3 +218,29 @@ export function validateApiKey(
 export function saveAppSetting(key: string, value: string): Promise<void> {
   return invoke("save_settings", { key, value });
 }
+
+// ── Data Migration / Export-Import ───────────────────────────────────────────
+
+export async function exportState(format: string): Promise<string> {
+  return invoke("export_state", { format });
+}
+
+export async function importState(path: string): Promise<string> {
+  return invoke("import_state", { path });
+}
+
+// ── Online / Offline Detection ──────────────────────────────────────────────
+
+export function isOnline(): boolean {
+  return navigator.onLine;
+}
+
+export function onOnlineChange(cb: (online: boolean) => void): () => void {
+  const handler = () => cb(navigator.onLine);
+  window.addEventListener("online", handler);
+  window.addEventListener("offline", handler);
+  return () => {
+    window.removeEventListener("online", handler);
+    window.removeEventListener("offline", handler);
+  };
+}

@@ -11,6 +11,7 @@ import RoutePreviewPage from "./pages/RoutePreviewPage";
 import MindMapPage from "./pages/MindMapPage";
 import ProjectAnalysisPage from "./pages/ProjectAnalysisPage";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import OfflineBanner from "./components/common/OfflineBanner";
 import { ToastContainer } from "./components/common/Toast";
 import { useSettingsStore } from "./stores/settingsStore";
 import { useEffect } from "react";
@@ -38,6 +39,7 @@ function AppInner() {
 
   return (
     <BrowserRouter>
+      <OfflineBanner />
       <ToastContainer />
       <Routes>
         <Route element={<AppLayout />}>

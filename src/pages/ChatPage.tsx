@@ -9,7 +9,8 @@ import { useCardStore } from "../stores/cardStore";
 import { useQuizStore } from "../stores/quizStore";
 import { useSessionStore } from "../stores/sessionStore";
 import {
-  completeSession, listenChatStream, startChatStream, stopChatStream,
+  completeSession, isOnline, listenChatStream, onOnlineChange,
+  startChatStream, stopChatStream,
   type ChatMessage,
 } from "../lib/tauri";
 import { generateSlug } from "../utils/slug";
@@ -23,6 +24,7 @@ export default function ChatPage() {
   const { concept } = useParams<{ concept: string }>();
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
+  const [online, setOnline] = useState(isOnline());
   const sessionIdRef = useRef<string>("");
   const breadcrumbPath = concept ? [concept] : [];
   const L = useLocale();
@@ -182,8 +184,10 @@ export default function ChatPage() {
     startSession,
   ]);
 
+  useEffect(() => onOnlineChange(setOnline), []);
+
   const handleSend = () => {
-    if (!inputValue.trim() || isStreaming || !concept) return;
+    if (!online || !inputValue.trim() || isStreaming || !concept) return;
     const userMsg = inputValue.trim();
     setInputValue("");
 
@@ -273,23 +277,31 @@ export default function ChatPage() {
         <ChatArea />
         <QuizPanel />
         <div className="h-16 border-t bg-white px-4 flex items-center gap-3 shrink-0">
-          <button
-            onClick={handleEndSession}
-            className="h-10 px-4 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
-          >
-            {L.chat.endSession}
-          </button>
-          <input type="text" value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder={isStreaming ? L.chat.streaming : L.chat.inputPlaceholder}
-            disabled={isStreaming}
-            className="flex-1 h-10 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-400 disabled:bg-gray-50 disabled:text-gray-400" />
-          {isStreaming ? (
-            <button onClick={handleStop} className="h-10 px-4 bg-red-100 text-red-500 rounded-xl text-sm hover:bg-red-200">{L.chat.stop}</button>
+          {online ? (
+            <>
+              <button
+                onClick={handleEndSession}
+                className="h-10 px-4 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                {L.chat.endSession}
+              </button>
+              <input type="text" value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder={isStreaming ? L.chat.streaming : L.chat.inputPlaceholder}
+                disabled={isStreaming}
+                className="flex-1 h-10 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-400 disabled:bg-gray-50 disabled:text-gray-400" />
+              {isStreaming ? (
+                <button onClick={handleStop} className="h-10 px-4 bg-red-100 text-red-500 rounded-xl text-sm hover:bg-red-200">{L.chat.stop}</button>
+              ) : (
+                <button onClick={handleSend} disabled={!inputValue.trim()}
+                  className="h-10 px-4 bg-indigo-500 text-white rounded-xl text-sm hover:bg-indigo-600 disabled:opacity-40 transition-all">{L.chat.send}</button>
+              )}
+            </>
           ) : (
-            <button onClick={handleSend} disabled={!inputValue.trim()}
-              className="h-10 px-4 bg-indigo-500 text-white rounded-xl text-sm hover:bg-indigo-600 disabled:opacity-40 transition-all">{L.chat.send}</button>
+            <span className="flex-1 text-sm text-amber-600 text-center">
+              {L.offline.chatUnavailable}
+            </span>
           )}
         </div>
       </div>
