@@ -3,6 +3,7 @@ import { submitQuizAnswers } from "../../lib/tauri";
 import { useChatStore } from "../../stores/chatStore";
 import { useQuizStore } from "../../stores/quizStore";
 import { useSessionStore } from "../../stores/sessionStore";
+import { useLocale } from "../../i18n/useLocale";
 import ChoiceQuestion from "./ChoiceQuestion";
 import ShortAnswer from "./ShortAnswer";
 
@@ -14,26 +15,36 @@ interface QuizQuestion {
   min_matches?: number;
 }
 
-function evaluateChoiceAnswer(question: QuizQuestion, answerIndex: number) {
+function evaluateChoiceAnswer(
+  question: QuizQuestion,
+  answerIndex: number,
+  L: ReturnType<typeof useLocale>,
+) {
   const correct = answerIndex === question.correct_index;
   return {
     correct,
-    feedback: correct ? "✅ 回答正确！" : "❌ 再想想",
+    feedback: correct
+      ? `✅ ${L.quiz.feedbackCorrect}`
+      : `❌ ${L.quiz.feedbackIncorrect}`,
   };
 }
 
-function evaluateShortAnswer(question: QuizQuestion, answer: string) {
+function evaluateShortAnswer(
+  question: QuizQuestion,
+  answer: string,
+  L: ReturnType<typeof useLocale>,
+) {
   const normalizedAnswer = answer.trim().toLowerCase();
   const keywords = (question.expected_keywords || [])
     .map((keyword) => keyword.trim().toLowerCase())
     .filter(Boolean);
 
   if (!normalizedAnswer) {
-    return { correct: false, feedback: "❌ 请先输入答案" };
+    return { correct: false, feedback: `❌ ${L.quiz.feedbackEmpty}` };
   }
 
   if (keywords.length === 0) {
-    return { correct: true, feedback: "✅ 已提交答案" };
+    return { correct: true, feedback: `✅ ${L.quiz.feedbackSubmitted}` };
   }
 
   const matches = keywords.filter((keyword) => normalizedAnswer.includes(keyword));
@@ -43,8 +54,8 @@ function evaluateShortAnswer(question: QuizQuestion, answer: string) {
   return {
     correct,
     feedback: correct
-      ? `✅ 命中了 ${matches.length} 个关键词`
-      : `❌ 还差一些关键点（已命中 ${matches.length}/${minMatches}）`,
+      ? `✅ ${L.quiz.feedbackKeywordsMatch.replace("{count}", String(matches.length))}`
+      : `❌ ${L.quiz.feedbackKeywordsPartial.replace("{matches}", String(matches.length)).replace("{min}", String(minMatches))}`,
   };
 }
 
@@ -53,6 +64,7 @@ export default function QuizPanel() {
   const [submitError, setSubmitError] = useState("");
   const sessionId = useSessionStore((s) => s.currentSession?.id);
   const conceptSlug = useChatStore((s) => s.conceptSlug);
+  const L = useLocale();
   const {
     isActive,
     quizType,
@@ -74,12 +86,12 @@ export default function QuizPanel() {
 
   const handleChoiceAnswer = (answerIndex: number) => {
     if (result) return;
-    submitAnswer(String(answerIndex), evaluateChoiceAnswer(q, answerIndex));
+    submitAnswer(String(answerIndex), evaluateChoiceAnswer(q, answerIndex, L));
   };
 
   const handleShortAnswerSubmit = (answer: string) => {
     if (result) return;
-    submitAnswer(answer, evaluateShortAnswer(q, answer));
+    submitAnswer(answer, evaluateShortAnswer(q, answer, L));
   };
 
   const handleSubmitQuiz = async () => {
@@ -112,7 +124,9 @@ export default function QuizPanel() {
   return (
     <div className="border-t bg-white p-4">
       <div className="flex justify-between items-center mb-4">
-        <span className="text-xs text-gray-400">Q {currentIndex + 1}/{questions.length}</span>
+        <span className="text-xs text-gray-400">
+          {L.quiz.question} {currentIndex + 1}{L.quiz.of}{questions.length}
+        </span>
         <div className="flex gap-1">
           {questions.map((_, i) => (
             <div key={i} className={`w-2 h-2 rounded-full ${
@@ -132,7 +146,7 @@ export default function QuizPanel() {
       )}
       {result && currentIndex < questions.length - 1 && (
         <button onClick={nextQuestion} className="mt-3 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm hover:bg-gray-200">
-          Next →
+          {L.quiz.next}
         </button>
       )}
       {result && isLastQuestion && (
@@ -141,7 +155,7 @@ export default function QuizPanel() {
           disabled={isSubmitting || !canSubmitQuiz}
           className="mt-3 px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm hover:bg-indigo-600 disabled:opacity-40"
         >
-          {isSubmitting ? "Submitting..." : "Submit quiz"}
+          {isSubmitting ? L.quiz.submitting : L.quiz.submitQuiz}
         </button>
       )}
       {submitError && <p className="mt-2 text-sm text-red-500">{submitError}</p>}

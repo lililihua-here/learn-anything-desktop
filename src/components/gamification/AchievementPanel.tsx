@@ -1,5 +1,6 @@
 import React from "react";
 import { useGamificationStore } from "../../stores/gamificationStore";
+import { useLocale } from "../../i18n/useLocale";
 
 const ACHIEVEMENT_META: Record<
   string,
@@ -44,6 +45,7 @@ interface AchievementCardProps {
 }
 
 function AchievementCard({ id, earned, earnedAt }: AchievementCardProps) {
+  const L = useLocale();
   const meta = ACHIEVEMENT_META[id];
   if (!meta) return null;
 
@@ -66,10 +68,10 @@ function AchievementCard({ id, earned, earnedAt }: AchievementCardProps) {
       <div className="mt-1 text-xs text-gray-400">{meta.description}</div>
       {earned && earnedAt ? (
         <div className="mt-2 text-xs text-green-500">
-          Unlocked {new Date(earnedAt).toLocaleDateString()}
+          {L.gamification.unlocked} {new Date(earnedAt).toLocaleDateString()}
         </div>
       ) : (
-        <div className="mt-2 text-xs text-gray-300">Locked</div>
+        <div className="mt-2 text-xs text-gray-300">{L.gamification.locked}</div>
       )}
     </div>
   );
@@ -78,6 +80,7 @@ function AchievementCard({ id, earned, earnedAt }: AchievementCardProps) {
 export default function AchievementPanel() {
   const achievements = useGamificationStore((s) => s.achievements);
   const loadStreak = useGamificationStore((s) => s.loadStreak);
+  const L = useLocale();
 
   // Ensure data is loaded
   React.useEffect(() => {
@@ -96,7 +99,7 @@ export default function AchievementPanel() {
   return (
     <div>
       <h3 className="mb-3 text-lg font-semibold text-gray-700">
-        Achievements
+        {L.gamification.achievements}
       </h3>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {displayAchievements.map((a) => (
@@ -111,5 +114,3 @@ export default function AchievementPanel() {
     </div>
   );
 }
-
-

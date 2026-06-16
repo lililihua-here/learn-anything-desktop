@@ -15,6 +15,7 @@ import {
 import { generateSlug } from "../utils/slug";
 import { useSettingsStore } from "../stores/settingsStore";
 import { useGamificationStore } from "../stores/gamificationStore";
+import { useLocale } from "../i18n/useLocale";
 
 const L0_WINDOW_SIZE = 20;
 
@@ -24,6 +25,7 @@ export default function ChatPage() {
   const [inputValue, setInputValue] = useState("");
   const sessionIdRef = useRef<string>("");
   const breadcrumbPath = concept ? [concept] : [];
+  const L = useLocale();
 
   const setName = useChatStore((s) => s.setConcept);
   const addMsg = useChatStore((s) => s.addMessage);
@@ -275,19 +277,19 @@ export default function ChatPage() {
             onClick={handleEndSession}
             className="h-10 px-4 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
           >
-            End session
+            {L.chat.endSession}
           </button>
           <input type="text" value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder={isStreaming ? "AI is responding..." : "Type your reply..."}
+            placeholder={isStreaming ? L.chat.streaming : L.chat.inputPlaceholder}
             disabled={isStreaming}
             className="flex-1 h-10 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-400 disabled:bg-gray-50 disabled:text-gray-400" />
           {isStreaming ? (
-            <button onClick={handleStop} className="h-10 px-4 bg-red-100 text-red-500 rounded-xl text-sm hover:bg-red-200">Stop</button>
+            <button onClick={handleStop} className="h-10 px-4 bg-red-100 text-red-500 rounded-xl text-sm hover:bg-red-200">{L.chat.stop}</button>
           ) : (
             <button onClick={handleSend} disabled={!inputValue.trim()}
-              className="h-10 px-4 bg-indigo-500 text-white rounded-xl text-sm hover:bg-indigo-600 disabled:opacity-40 transition-all">Send</button>
+              className="h-10 px-4 bg-indigo-500 text-white rounded-xl text-sm hover:bg-indigo-600 disabled:opacity-40 transition-all">{L.chat.send}</button>
           )}
         </div>
       </div>

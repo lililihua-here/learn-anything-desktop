@@ -9,6 +9,7 @@ import {
   type ScanResult,
 } from "../lib/tauri";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useLocale } from "../i18n/useLocale";
 import { generateSlug } from "../utils/slug";
 
 type Phase =
@@ -20,13 +21,6 @@ type Phase =
   | "error";
 
 type AnalysisRound = "round1" | "round2" | "round3" | "done";
-
-const ROUND_LABELS: Record<AnalysisRound, string> = {
-  round1: "第 1 轮：识别技术栈和入口文件",
-  round2: "第 2 轮：深入核心源码",
-  round3: "第 3 轮：补充剩余模块和缺口",
-  done: "分析完成",
-};
 
 const CATEGORY_COLORS: Record<string, string> = {
   architecture: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200",
@@ -53,51 +47,11 @@ function estimateCost(tokenCount: number): string {
   return `~ $${(tokensM * inputPricePerMtok).toFixed(2)}`;
 }
 
-function buildKnowledgeMapFromProject(
-  analysis: CodeUnderstandingMap,
-): KnowledgeMapOutput {
-  const grouped = new Map<
-    string,
-    KnowledgeMapOutput["domains"][number]
-  >();
-
-  analysis.concepts_found.forEach((concept, index) => {
-    const domainSlug = generateSlug(concept.category || "project-concepts");
-    const domainName = concept.category || "Project Concepts";
-    if (!grouped.has(domainSlug)) {
-      grouped.set(domainSlug, {
-        name: domainName,
-        slug: domainSlug,
-        concepts: [],
-      });
-    }
-
-    grouped.get(domainSlug)?.concepts.push({
-      name: concept.name,
-      slug: generateSlug(`${concept.category}-${concept.name}-${index}`),
-      description:
-        concept.files.length > 0
-          ? `来自 ${concept.files[0]} 的项目概念`
-          : "从项目结构中提炼的概念",
-      prerequisites: [],
-      difficulty: "intermediate",
-      estimated_minutes: 15,
-    });
-  });
-
-  return {
-    topic_name: analysis.project_name,
-    topic_slug: generateSlug(analysis.project_name),
-    topic_type: "programming",
-    depth: "project",
-    domains: Array.from(grouped.values()),
-  };
-}
-
 export default function ProjectAnalysisPage() {
   const navigate = useNavigate();
   const provider = useSettingsStore((s) => s.provider);
   const model = useSettingsStore((s) => s.model);
+  const L = useLocale();
   const [path, setPath] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -106,9 +60,49 @@ export default function ProjectAnalysisPage() {
   const [error, setError] = useState<string | null>(null);
   const [savingRoute, setSavingRoute] = useState(false);
 
+  const roundLabelMap: Record<AnalysisRound, string> = {
+    round1: L.project.round1Desc,
+    round2: L.project.round2Desc,
+    round3: L.project.round3Desc,
+    done: L.project.done,
+  };
+
   const projectKnowledgeMap = useMemo(
-    () => (analysisResult ? buildKnowledgeMapFromProject(analysisResult) : null),
-    [analysisResult],
+    () => {
+      if (!analysisResult) return null;
+      const grouped = new Map<string, KnowledgeMapOutput["domains"][number]>();
+      analysisResult.concepts_found.forEach((concept, index) => {
+        const domainSlug = generateSlug(concept.category || "project-concepts");
+        const domainName = concept.category || "Project Concepts";
+        if (!grouped.has(domainSlug)) {
+          grouped.set(domainSlug, {
+            name: domainName,
+            slug: domainSlug,
+            concepts: [],
+          });
+        }
+        const desc =
+          concept.files.length > 0
+            ? L.project.fromFile.replace("{file}", concept.files[0])
+            : L.project.structuredConcept;
+        grouped.get(domainSlug)?.concepts.push({
+          name: concept.name,
+          slug: generateSlug(`${concept.category}-${concept.name}-${index}`),
+          description: desc,
+          prerequisites: [],
+          difficulty: "intermediate",
+          estimated_minutes: 15,
+        });
+      });
+      return {
+        topic_name: analysisResult.project_name,
+        topic_slug: generateSlug(analysisResult.project_name),
+        topic_type: "programming" as const,
+        depth: "project" as const,
+        domains: Array.from(grouped.values()),
+      };
+    },
+    [analysisResult, L],
   );
 
   const handleScan = useCallback(async () => {
@@ -200,10 +194,10 @@ export default function ProjectAnalysisPage() {
     <div className="flex h-full items-center justify-center p-8">
       <div className="w-full max-w-xl">
         <h1 className="mb-2 text-2xl font-bold text-gray-800 dark:text-gray-100">
-          项目分析
+          {L.project.title}
         </h1>
         <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-          先扫描项目，再在预算内做三轮 AI 分析，最后把提炼出的概念送进学习路径。
+          {L.project.description}
         </p>
 
         <div
@@ -216,14 +210,14 @@ export default function ProjectAnalysisPage() {
           onDrop={handleDrop}
         >
           <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
-            拖入项目文件夹，或者直接输入本地路径
+            {L.project.dragHint}
           </p>
           <input
             type="text"
             value={path}
             onChange={(e) => setPath(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && void handleScan()}
-            placeholder="例如 D:\Projects\my-app"
+            placeholder={L.project.pathPlaceholder}
             className="h-12 w-full max-w-md rounded-xl border border-gray-200 px-4 text-sm shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           />
         </div>
@@ -233,7 +227,7 @@ export default function ProjectAnalysisPage() {
           disabled={!path.trim()}
           className="w-full rounded-xl bg-indigo-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          扫描项目
+          {L.project.scan}
         </button>
       </div>
     </div>
@@ -243,7 +237,7 @@ export default function ProjectAnalysisPage() {
     <div className="flex h-full items-center justify-center p-8">
       <div className="text-center">
         <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-        <p className="text-sm text-gray-500 dark:text-gray-400">正在扫描项目文件...</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{L.project.scanning}</p>
         <p className="mt-1 max-w-md truncate font-mono text-xs text-gray-400 dark:text-gray-500">
           {path}
         </p>
@@ -254,20 +248,20 @@ export default function ProjectAnalysisPage() {
   const renderScanComplete = () => (
     <div className="flex h-full items-center justify-center p-8">
       <div className="w-full max-w-xl">
-        <h2 className="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">扫描结果</h2>
+        <h2 className="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">{L.project.scanResult}</h2>
 
         {scanResult && (
           <div className="mb-6 grid grid-cols-2 gap-3">
-            <StatCard label="总文件数" value={scanResult.total_files.toLocaleString()} />
-            <StatCard label="参与分析" value={scanResult.included_files.length.toLocaleString()} />
-            <StatCard label="已跳过" value={scanResult.skipped_files.length.toLocaleString()} />
-            <StatCard label="预估 Tokens" value={scanResult.estimated_tokens.toLocaleString()} />
+            <StatCard label={L.project.totalFiles} value={scanResult.total_files.toLocaleString()} />
+            <StatCard label={L.project.includedFiles} value={scanResult.included_files.length.toLocaleString()} />
+            <StatCard label={L.project.skippedFiles} value={scanResult.skipped_files.length.toLocaleString()} />
+            <StatCard label={L.project.estimatedTokens} value={scanResult.estimated_tokens.toLocaleString()} />
           </div>
         )}
 
         {scanResult && (
           <div className="mb-3 rounded-lg border border-gray-100 bg-gray-50 p-3 text-center dark:border-gray-700 dark:bg-gray-800">
-            <span className="text-sm text-gray-500 dark:text-gray-400">预估费用：</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">{L.project.estimatedCost}</span>
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
               {estimateCost(scanResult.estimated_tokens)}
             </span>
@@ -279,13 +273,13 @@ export default function ProjectAnalysisPage() {
             onClick={handleReset}
             className="flex-1 rounded-xl border border-gray-200 px-6 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            返回
+            {L.common.back}
           </button>
           <button
             onClick={() => void handleAnalyze()}
             className="flex-1 rounded-xl bg-indigo-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-600"
           >
-            开始分析
+            {L.project.analyze}
           </button>
         </div>
       </div>
@@ -297,7 +291,7 @@ export default function ProjectAnalysisPage() {
       <div className="w-full max-w-xl text-center">
         <div className="mx-auto mb-6 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         <p className="mb-4 text-sm font-medium text-gray-700 dark:text-gray-200">
-          {ROUND_LABELS[analysisRound]}
+          {roundLabelMap[analysisRound]}
         </p>
         <div className="mx-auto flex max-w-xs gap-2">
           <StepBubble active={analysisRound === "round1"} done={analysisRound !== "round1"} label="R1" />
@@ -311,12 +305,12 @@ export default function ProjectAnalysisPage() {
   const renderAnalysisComplete = () => (
     <div className="mx-auto max-w-3xl p-8">
       <h2 className="mb-6 text-xl font-bold text-gray-800 dark:text-gray-100">
-        分析结果：{analysisResult?.project_name ?? "Untitled"}
+        {L.project.analysisResult} {analysisResult?.project_name ?? "Untitled"}
       </h2>
 
       {analysisResult && analysisResult.tech_stack.length > 0 && (
         <div className="mb-6">
-          <h3 className="mb-2 text-sm font-semibold text-gray-600 dark:text-gray-300">技术栈</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-600 dark:text-gray-300">{L.project.techStack}</h3>
           <div className="flex flex-wrap gap-2">
             {analysisResult.tech_stack.map((tech) => (
               <span
@@ -333,7 +327,7 @@ export default function ProjectAnalysisPage() {
       {analysisResult && analysisResult.concepts_found.length > 0 && (
         <div className="mb-6">
           <h3 className="mb-3 text-sm font-semibold text-gray-600 dark:text-gray-300">
-            提炼出的概念 ({analysisResult.concepts_found.length})
+            {L.project.conceptsFound} ({analysisResult.concepts_found.length})
           </h3>
           <div className="space-y-3">
             {analysisResult.concepts_found.map((concept) => (
@@ -395,14 +389,14 @@ export default function ProjectAnalysisPage() {
           onClick={handleReset}
           className="flex-1 rounded-xl border border-gray-200 px-6 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
         >
-          分析其他项目
+          {L.project.analyzeOther}
         </button>
         <button
           onClick={() => void handleLearnFromProject()}
           disabled={!projectKnowledgeMap || savingRoute}
           className="flex-1 rounded-xl bg-indigo-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-indigo-300"
         >
-          {savingRoute ? "正在生成学习路径..." : "把结果送入学习路径"}
+          {savingRoute ? L.project.generatingPath : L.project.sendToLearning}
         </button>
       </div>
     </div>
@@ -411,13 +405,13 @@ export default function ProjectAnalysisPage() {
   const renderError = () => (
     <div className="flex h-full items-center justify-center p-8">
       <div className="w-full max-w-xl text-center">
-        <h2 className="mb-2 text-lg font-semibold text-red-600 dark:text-red-400">分析失败</h2>
+        <h2 className="mb-2 text-lg font-semibold text-red-600 dark:text-red-400">{L.project.analysisFailed}</h2>
         <p className="mb-6 break-all text-sm text-gray-500 dark:text-gray-400">{error}</p>
         <button
           onClick={handleReset}
           className="rounded-xl bg-indigo-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-600"
         >
-          重试
+          {L.project.retry}
         </button>
       </div>
     </div>

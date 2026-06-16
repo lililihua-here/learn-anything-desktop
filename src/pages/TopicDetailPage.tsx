@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { generateKnowledgeMap, type KnowledgeMapOutput } from "../lib/tauri";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useLocale } from "../i18n/useLocale";
 import { generateSlug } from "../utils/slug";
 
 type TopicType = "programming" | "non_programming";
@@ -24,7 +25,7 @@ export default function TopicDetailPage() {
   const navigate = useNavigate();
   const provider = useSettingsStore((s) => s.provider);
   const model = useSettingsStore((s) => s.model);
-  const locale = useSettingsStore((s) => s.locale);
+  const L = useLocale();
 
   const [topicType, setTopicType] = useState<TopicType>("programming");
   const [depth, setDepth] = useState<Depth>("overview");
@@ -61,31 +62,6 @@ export default function TopicDetailPage() {
     }
   };
 
-  const copy =
-    locale === "zh-CN"
-      ? {
-          title: "生成知识图谱",
-          typeLabel: "学习类型",
-          depthLabel: "学习深度",
-          projectHint: "如果你想从真实代码项目中反推知识路线，请改走“项目分析”入口。",
-          projectAction: "前往项目分析",
-          generateBtn: "生成知识图谱",
-          generating: "正在生成...",
-          back: "返回主题列表",
-          unknown: "未命名主题",
-        }
-      : {
-          title: "Generate Knowledge Map",
-          typeLabel: "Learning Type",
-          depthLabel: "Learning Depth",
-          projectHint: "If you want to learn from a real codebase, use the project analysis flow instead of topic generation.",
-          projectAction: "Open Project Analysis",
-          generateBtn: "Generate Knowledge Map",
-          generating: "Generating...",
-          back: "Back to Topics",
-          unknown: "Untitled Topic",
-        };
-
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-2xl px-4 py-8">
@@ -93,18 +69,18 @@ export default function TopicDetailPage() {
           onClick={() => navigate("/topics")}
           className="mb-6 text-sm text-indigo-500 transition-colors hover:text-indigo-600"
         >
-          {copy.back}
+          {L.topicDetail.back}
         </button>
 
         <h1 className="text-2xl font-bold text-gray-900">
-          {topicName || copy.unknown}
+          {topicName || L.topicDetail.unknown}
         </h1>
-        <p className="mt-2 text-sm text-gray-500">{copy.title}</p>
+        <p className="mt-2 text-sm text-gray-500">{L.topicDetail.title}</p>
 
         <div className="mt-8 space-y-6">
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
-              {copy.typeLabel}
+              {L.topicDetail.typeLabel}
             </label>
             <div className="grid grid-cols-2 gap-3">
               {TOPIC_TYPE_OPTIONS.map((opt) => (
@@ -125,7 +101,7 @@ export default function TopicDetailPage() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
-              {copy.depthLabel}
+              {L.topicDetail.depthLabel}
             </label>
             <div className="space-y-2">
               {DEPTH_OPTIONS.map((opt) => (
@@ -153,13 +129,13 @@ export default function TopicDetailPage() {
 
           {topicType === "programming" && (
             <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-              <p className="text-sm text-gray-600">{copy.projectHint}</p>
+              <p className="text-sm text-gray-600">{L.topicDetail.projectHint}</p>
               <button
                 type="button"
                 onClick={() => navigate("/projects")}
                 className="mt-3 text-sm font-medium text-indigo-500 hover:text-indigo-600"
               >
-                {copy.projectAction}
+                {L.topicDetail.projectAction}
               </button>
             </div>
           )}
@@ -179,7 +155,7 @@ export default function TopicDetailPage() {
                 : "bg-indigo-500 shadow-sm hover:bg-indigo-600"
             }`}
           >
-            {loading ? copy.generating : copy.generateBtn}
+            {loading ? L.topicDetail.generating : L.topicDetail.generateBtn}
           </button>
         </div>
       </div>

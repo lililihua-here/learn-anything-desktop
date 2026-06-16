@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useSettingsStore } from "../../stores/settingsStore";
+import { useLocale } from "../../i18n/useLocale";
 import StreakBadge from "../gamification/StreakBadge";
 
 export default function AppLayout() {
@@ -10,37 +11,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const history = useSessionStore((s) => s.history);
   const locale = useSettingsStore((s) => s.locale);
-
-  const copy =
-    locale === "zh-CN"
-      ? {
-          title: "Learn Anything",
-          home: "首页",
-          history: "历史",
-          topics: "主题",
-          concepts: "概念",
-          cards: "卡片",
-          settings: "设置",
-          historyTitle: "学习历史",
-          noHistory: "还没有学习记录",
-          completed: "已完成",
-          interrupted: "已中断",
-          close: "关闭",
-        }
-      : {
-          title: "Learn Anything",
-          home: "Home",
-          history: "History",
-          topics: "Topics",
-          concepts: "Concepts",
-          cards: "Cards",
-          settings: "Settings",
-          historyTitle: "Learning History",
-          noHistory: "No learning history yet",
-          completed: "completed",
-          interrupted: "interrupted",
-          close: "Close",
-        };
+  const L = useLocale();
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -56,17 +27,17 @@ export default function AppLayout() {
         }`}
       >
         <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-lg font-semibold">{copy.historyTitle}</h2>
+          <h2 className="text-lg font-semibold">{L.history.title}</h2>
           <button
             onClick={() => setSidebarOpen(false)}
             className="text-sm text-gray-400 hover:text-gray-600"
           >
-            {copy.close}
+            {L.common.close}
           </button>
         </div>
         <div className="h-full overflow-y-auto pb-20">
           {history.length === 0 ? (
-            <div className="p-4 text-sm text-gray-400">{copy.noHistory}</div>
+            <div className="p-4 text-sm text-gray-400">{L.history.empty}</div>
           ) : (
             history.map((session) => (
               <div
@@ -89,8 +60,8 @@ export default function AppLayout() {
                     }`}
                   >
                     {session.status === "completed"
-                      ? copy.completed
-                      : copy.interrupted}
+                      ? L.history.completed
+                      : L.history.interrupted}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-gray-400">
@@ -109,11 +80,11 @@ export default function AppLayout() {
               onClick={() => setSidebarOpen(true)}
               className="rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
-              {copy.history}
+              {L.app.history}
             </button>
           )}
           <Link to="/" className="text-lg font-bold text-indigo-500">
-            {copy.title}
+            {L.app.title}
           </Link>
           <div className="flex-1" />
           <StreakBadge compact />
@@ -122,31 +93,31 @@ export default function AppLayout() {
               to="/"
               className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
-              {copy.home}
+              {L.app.home}
             </Link>
             <Link
               to="/topics"
               className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
-              {copy.topics}
+              {L.app.topics}
             </Link>
             <Link
               to="/concepts"
               className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
-              {copy.concepts}
+              {L.app.concepts}
             </Link>
             <Link
               to="/cards"
               className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
-              {copy.cards}
+              {L.app.cards}
             </Link>
             <Link
               to="/settings"
               className="rounded-lg px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             >
-              {copy.settings}
+              {L.app.settings}
             </Link>
           </nav>
         </header>

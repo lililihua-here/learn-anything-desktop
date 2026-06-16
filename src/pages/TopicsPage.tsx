@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocale } from "../i18n/useLocale";
 import TopicCard from "../components/topics/TopicCard";
 
 interface Topic {
@@ -49,6 +50,7 @@ const TOPICS: Topic[] = [
 
 export default function TopicsPage() {
   const [search, setSearch] = useState("");
+  const L = useLocale();
 
   const filtered = TOPICS.filter(
     (topic) =>
@@ -60,10 +62,8 @@ export default function TopicsPage() {
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900">热门学习主题</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            选择一个主题，进入系统化学习模式
-          </p>
+          <h1 className="text-xl font-bold text-gray-900">{L.topics.title}</h1>
+          <p className="mt-1 text-sm text-gray-500">{L.topics.subtitle}</p>
         </div>
 
         <div className="mb-6">
@@ -71,15 +71,15 @@ export default function TopicsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索主题..."
+            placeholder={L.topics.search}
             className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
           />
         </div>
 
         {filtered.length === 0 ? (
           <div className="py-16 text-center text-gray-400">
-            <p className="text-base">没有匹配的主题</p>
-            <p className="mt-1 text-xs">试试别的关键词</p>
+            <p className="text-base">{L.topics.noMatch}</p>
+            <p className="mt-1 text-xs">{L.topics.noMatchHint}</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">

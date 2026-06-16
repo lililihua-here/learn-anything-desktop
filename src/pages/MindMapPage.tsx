@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MindMap from "../components/mindmap/MindMap";
 import MaterialsLibrary from "../components/project/MaterialsLibrary";
+import { useLocale } from "../i18n/useLocale";
 import {
   getConceptTree,
   listenKnowledgeMapUpdates,
@@ -11,6 +12,7 @@ import {
 export default function MindMapPage() {
   const { topic = "" } = useParams<{ topic: string }>();
   const navigate = useNavigate();
+  const L = useLocale();
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,13 +68,13 @@ export default function MindMapPage() {
           onClick={() => navigate("/")}
           className="text-sm text-indigo-500 transition-colors hover:text-indigo-600"
         >
-          返回首页
+          {L.mindmap.back}
         </button>
         <h1 className="text-lg font-semibold text-gray-900">
           {tree ? tree.name : topic}
         </h1>
         <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-          Knowledge Map
+          {L.mindmap.title}
         </span>
         <div className="flex-1" />
         <button
@@ -83,7 +85,7 @@ export default function MindMapPage() {
               : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
           }`}
         >
-          学习资料
+          {L.mindmap.materials}
         </button>
       </header>
 
@@ -102,7 +104,7 @@ export default function MindMapPage() {
                 onClick={() => void fetchTree(topic)}
                 className="rounded bg-indigo-500 px-4 py-2 text-sm text-white hover:bg-indigo-600"
               >
-                重试
+                {L.common.retry}
               </button>
             </div>
           )}
@@ -113,7 +115,7 @@ export default function MindMapPage() {
 
           {!loading && !error && !tree && (
             <div className="flex h-full items-center justify-center text-gray-500">
-              当前主题还没有可展示的知识图谱。
+              {L.mindmap.emptyState}
             </div>
           )}
         </main>

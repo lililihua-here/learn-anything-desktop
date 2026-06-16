@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocale } from "../../i18n/useLocale";
 
 export interface MaterialSource {
   id: string;
@@ -16,13 +17,6 @@ interface MaterialsLibraryProps {
   projectPath?: string;
 }
 
-const TYPE_LABELS: Record<MaterialSource["type"], string> = {
-  "local-file": "File",
-  "local-folder": "Folder",
-  url: "URL",
-  "github-repo": "GitHub",
-};
-
 export default function MaterialsLibrary({
   isOpen,
   onClose,
@@ -31,6 +25,14 @@ export default function MaterialsLibrary({
   const [sources, setSources] = useState<MaterialSource[]>([]);
   const [inputMode, setInputMode] = useState<InputMode>("none");
   const [inputValue, setInputValue] = useState("");
+  const L = useLocale();
+
+  const TYPE_LABELS: Record<MaterialSource["type"], string> = {
+    "local-file": L.materials.addFile,
+    "local-folder": L.materials.addFolder,
+    url: L.materials.addUrl,
+    "github-repo": L.materials.addGithub,
+  };
 
   const addSource = (name: string, type: MaterialSource["type"], inputPath: string) => {
     const newSource: MaterialSource = {
@@ -78,32 +80,32 @@ export default function MaterialsLibrary({
   return (
     <div className="flex h-full w-80 shrink-0 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">学习资料</h3>
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{L.materials.title}</h3>
         <button
           onClick={onClose}
           className="rounded p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
-          aria-label="Close materials"
+          aria-label={L.materials.closeAriaLabel}
         >
           ×
         </button>
       </div>
 
       <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-        当前面板只负责暂存资料来源。真正的增量抓取和回写流程还需要继续接后端命令，先不要把这里当成已完成闭环。
+        {L.materials.warning}
       </div>
 
       {projectPath && (
         <div className="border-b border-gray-100 px-4 py-2 dark:border-gray-700">
-          <p className="truncate text-xs text-gray-400 dark:text-gray-500">Project: {projectPath}</p>
+          <p className="truncate text-xs text-gray-400 dark:text-gray-500">{L.materials.projectPrefix}{projectPath}</p>
         </div>
       )}
 
       <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
         <div className="grid grid-cols-2 gap-2">
-          <ActionButton onClick={() => setInputMode("folder")} label="Add Folder" />
-          <ActionButton onClick={() => setInputMode("file")} label="Add File" />
-          <ActionButton onClick={() => setInputMode("url")} label="Add URL" />
-          <ActionButton onClick={() => setInputMode("github")} label="GitHub Repo" />
+          <ActionButton onClick={() => setInputMode("folder")} label={L.materials.addFolder} />
+          <ActionButton onClick={() => setInputMode("file")} label={L.materials.addFile} />
+          <ActionButton onClick={() => setInputMode("url")} label={L.materials.addUrl} />
+          <ActionButton onClick={() => setInputMode("github")} label={L.materials.addGithub} />
         </div>
       </div>
 
@@ -111,12 +113,12 @@ export default function MaterialsLibrary({
         <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
           <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
             {inputMode === "folder"
-              ? "Folder path"
+              ? L.materials.folderPath
               : inputMode === "file"
-                ? "File path"
+                ? L.materials.filePath
                 : inputMode === "url"
-                  ? "URL"
-                  : "GitHub repo URL"}
+                  ? L.materials.urlPath
+                  : L.materials.githubPath}
           </p>
           <input
             type="text"
@@ -125,12 +127,12 @@ export default function MaterialsLibrary({
             onKeyDown={(e) => e.key === "Enter" && handleConfirmInput()}
             placeholder={
               inputMode === "folder"
-                ? "/path/to/folder"
+                ? L.materials.folderPlaceholder
                 : inputMode === "file"
-                  ? "/path/to/file.ext"
+                  ? L.materials.filePlaceholder
                   : inputMode === "url"
-                    ? "https://..."
-                    : "https://github.com/owner/repo"
+                    ? L.materials.urlPlaceholder
+                    : L.materials.githubPlaceholder
             }
             autoFocus
             className="mb-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 shadow-sm transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
@@ -141,7 +143,7 @@ export default function MaterialsLibrary({
               disabled={!inputValue.trim()}
               className="flex-1 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-indigo-300"
             >
-              Add
+              {L.materials.add}
             </button>
             <button
               onClick={() => {
@@ -150,7 +152,7 @@ export default function MaterialsLibrary({
               }}
               className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
             >
-              Cancel
+              {L.materials.cancel}
             </button>
           </div>
         </div>
@@ -159,9 +161,9 @@ export default function MaterialsLibrary({
       <div className="flex-1 overflow-y-auto p-4">
         {sources.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-            还没有暂存资料来源。
+            {L.materials.emptyState}
             <br />
-            你可以先把文件、文件夹、URL 或仓库地址放到这里。
+            {L.materials.emptyStateHint}
           </div>
         ) : (
           <ul className="space-y-2">
@@ -182,7 +184,7 @@ export default function MaterialsLibrary({
                   <button
                     onClick={() => removeSource(source.id)}
                     className="shrink-0 rounded p-0.5 text-gray-400 transition-colors hover:text-red-500"
-                    aria-label={`Remove ${source.name}`}
+                    aria-label={L.materials.removeAriaLabel.replace("{name}", source.name)}
                   >
                     ×
                   </button>
