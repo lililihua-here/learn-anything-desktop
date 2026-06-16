@@ -1,6 +1,6 @@
-use std::pin::Pin;
-use std::future::Future;
 use serde::{Deserialize, Serialize};
+use std::future::Future;
+use std::pin::Pin;
 
 /// Intermediate parsed chunk from a provider's SSE stream.
 /// Contains only event-level data — no session_id or concept_slug.

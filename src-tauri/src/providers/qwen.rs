@@ -1,10 +1,8 @@
-use std::pin::Pin;
 use std::future::Future;
+use std::pin::Pin;
 
-use super::traits::{
-    ParsedChunk, ParseError, ProviderAdapter, RequestPayload, ToolDef,
-};
 use super::openai::{OpenAIAdapter, StreamParseState};
+use super::traits::{ParseError, ParsedChunk, ProviderAdapter, RequestPayload, ToolDef};
 
 /// Qwen (Tongyi Qianwen) Chat Completions API adapter via Alibaba DashScope.
 ///
@@ -47,7 +45,8 @@ impl ProviderAdapter for QwenAdapter {
         messages: &[serde_json::Value],
         tools: &[ToolDef],
     ) -> RequestPayload {
-        self.inner.build_chat_request(model, system_prompt, messages, tools)
+        self.inner
+            .build_chat_request(model, system_prompt, messages, tools)
     }
 
     fn build_non_streaming_request(
@@ -56,13 +55,11 @@ impl ProviderAdapter for QwenAdapter {
         system_prompt: &str,
         prompt: &str,
     ) -> RequestPayload {
-        self.inner.build_non_streaming_request(model, system_prompt, prompt)
+        self.inner
+            .build_non_streaming_request(model, system_prompt, prompt)
     }
 
-    fn parse_stream_chunk(
-        &mut self,
-        data: &str,
-    ) -> Result<Option<ParsedChunk>, ParseError> {
+    fn parse_stream_chunk(&mut self, data: &str) -> Result<Option<ParsedChunk>, ParseError> {
         self.inner.parse_stream_chunk(data)
     }
 

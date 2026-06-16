@@ -1,7 +1,17 @@
 use crate::pipeline::{self, bridge, persistence, protocol, types::ChatMessage};
+use crate::providers::traits::ToolDef;
 use crate::AppState;
 use tauri::AppHandle;
 use tokio_util::sync::CancellationToken;
+
+fn default_model_for_provider(provider: &str) -> &'static str {
+    match provider {
+        "openai" => "gpt-4o",
+        "deepseek" => "deepseek-chat",
+        "qwen" => "qwen-max",
+        _ => "claude-sonnet-4-20250514",
+    }
+}
 
 #[tauri::command]
 pub async fn start_chat_stream(
@@ -16,14 +26,9 @@ pub async fn start_chat_stream(
     resume_session_id: Option<String>,
 ) -> Result<String, String> {
     let state = state.inner();
-    let api_key_env = match provider.as_str() {
-        "anthropic" => "ANTHROPIC_API_KEY",
-        _ => return Err(format!("Unsupported provider: {}", provider)),
-    };
-    let api_key = std::env::var(api_key_env)
-        .map_err(|_| format!("API Key not configured for provider: {}", provider))?;
+    let api_key = crate::commands::settings::get_api_key_for_provider(&provider)?;
     let model = if model.trim().is_empty() {
-        "claude-sonnet-4-20250514".to_string()
+        default_model_for_provider(&provider).to_string()
     } else {
         model
     };
@@ -38,14 +43,12 @@ pub async fn start_chat_stream(
         .map(|message| serde_json::json!({"role": message.role, "content": message.content}))
         .collect();
 
-    let tools: Vec<serde_json::Value> = crate::ai::SOCRATIC_TOOLS
+    let tools: Vec<ToolDef> = crate::ai::SOCRATIC_TOOLS
         .iter()
-        .map(|(name, description, schema)| {
-            serde_json::json!({
-                "name": name,
-                "description": description,
-                "input_schema": serde_json::from_str::<serde_json::Value>(schema).unwrap()
-            })
+        .map(|(name, description, schema)| ToolDef {
+            name: (*name).to_string(),
+            description: (*description).to_string(),
+            input_schema: serde_json::from_str::<serde_json::Value>(schema).unwrap(),
         })
         .collect();
 
@@ -112,6 +115,7 @@ pub async fn start_chat_stream(
     let token = cancel_token.clone();
     tokio::spawn(async move {
         if let Err(error) = protocol::run(
+            &provider,
             &api_key,
             &model,
             &system_prompt,

@@ -276,12 +276,12 @@ export default function ChatPage() {
         <Breadcrumb path={breadcrumbPath} />
         <ChatArea />
         <QuizPanel />
-        <div className="h-16 border-t bg-white px-4 flex items-center gap-3 shrink-0">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-t bg-white px-4 dark:border-gray-700 dark:bg-gray-900">
           {online ? (
             <>
-              <button
+                <button
                 onClick={handleEndSession}
-                className="h-10 px-4 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                className="h-10 rounded-xl border border-gray-200 px-4 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 {L.chat.endSession}
               </button>
@@ -290,9 +290,9 @@ export default function ChatPage() {
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder={isStreaming ? L.chat.streaming : L.chat.inputPlaceholder}
                 disabled={isStreaming}
-                className="flex-1 h-10 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-indigo-400 disabled:bg-gray-50 disabled:text-gray-400" />
+                className="flex-1 h-10 rounded-xl border border-gray-200 px-4 text-sm text-gray-900 focus:border-indigo-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-500" />
               {isStreaming ? (
-                <button onClick={handleStop} className="h-10 px-4 bg-red-100 text-red-500 rounded-xl text-sm hover:bg-red-200">{L.chat.stop}</button>
+                <button onClick={handleStop} className="h-10 rounded-xl bg-red-100 px-4 text-sm text-red-500 hover:bg-red-200 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25">{L.chat.stop}</button>
               ) : (
                 <button onClick={handleSend} disabled={!inputValue.trim()}
                   className="h-10 px-4 bg-indigo-500 text-white rounded-xl text-sm hover:bg-indigo-600 disabled:opacity-40 transition-all">{L.chat.send}</button>

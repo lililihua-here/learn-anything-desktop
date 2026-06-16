@@ -2,17 +2,19 @@ use bytes::Bytes;
 use futures::stream::{BoxStream, StreamExt};
 use std::time::Duration;
 
-const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
+use crate::providers::traits::{ProviderAdapter, ToolDef};
+
 const REQUEST_TIMEOUT_SECS: u64 = 30;
 const CONNECT_TIMEOUT_SECS: u64 = 10;
 const MAX_RETRIES: u32 = 3;
 
 pub async fn start_stream(
     api_key: &str,
+    adapter: &dyn ProviderAdapter,
     model: &str,
     system_prompt: &str,
     messages: &[serde_json::Value],
-    tools: &[serde_json::Value],
+    tools: &[ToolDef],
 ) -> Result<BoxStream<'static, Result<Bytes, reqwest::Error>>, String> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
@@ -20,14 +22,8 @@ pub async fn start_stream(
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let body = serde_json::json!({
-        "model": model,
-        "max_tokens": 4096,
-        "system": system_prompt,
-        "messages": messages,
-        "tools": tools,
-        "stream": true
-    });
+    let payload = adapter.build_chat_request(model, system_prompt, messages, tools);
+    let (auth_name, auth_value) = adapter.auth_header(api_key);
 
     let mut last_error = String::new();
     for attempt in 0..=MAX_RETRIES {
@@ -35,15 +31,16 @@ pub async fn start_stream(
             tokio::time::sleep(Duration::from_secs(2u64.pow(attempt - 1))).await;
         }
 
-        let response = match client
-            .post(ANTHROPIC_API_URL)
-            .header("x-api-key", api_key)
-            .header("anthropic-version", "2023-06-01")
-            .header("content-type", "application/json")
-            .json(&body)
-            .send()
-            .await
-        {
+        let mut request = client
+            .post(&payload.endpoint)
+            .header(&auth_name, &auth_value)
+            .json(&payload.body);
+
+        for (header_name, header_value) in &payload.headers {
+            request = request.header(header_name, header_value);
+        }
+
+        let response = match request.send().await {
             Ok(r) => r,
             Err(e) => {
                 last_error = format!("Transport error: {}", e);

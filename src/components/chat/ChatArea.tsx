@@ -15,19 +15,19 @@ export default function ChatArea() {
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400">
+      <div className="flex flex-1 items-center justify-center text-gray-400 dark:text-gray-500">
         <div className="text-center">
-          <p className="text-2xl mb-2">💡</p>
-          <p>{`${L.chat.welcome}「${conceptName}」`}</p>
+          <p className="mb-2 text-2xl">📕</p>
+          <p>{conceptName ? `${L.chat.welcome}: ${conceptName}` : L.chat.welcome}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} />
+    <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      {messages.map((message) => (
+        <MessageBubble key={message.id} message={message} />
       ))}
       <div ref={bottomRef} />
     </div>

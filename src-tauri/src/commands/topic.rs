@@ -13,43 +13,33 @@ struct KnowledgeMapUpdatedPayload {
     reason: String,
 }
 
-fn resolve_api_key(provider: &str) -> Result<String, String> {
-    let api_key_env = match provider {
-        "anthropic" => "ANTHROPIC_API_KEY",
-        _ => return Err(format!("Unsupported provider: {}", provider)),
-    };
-
-    std::env::var(api_key_env)
-        .map_err(|_| format!("API Key not configured for provider: {}", provider))
-}
-
 async fn send_json_prompt(
+    provider: &str,
     api_key: &str,
     model: &str,
     system_prompt: &str,
     prompt: &str,
 ) -> Result<Value, String> {
+    let adapter = crate::providers::create_provider_adapter(provider)?;
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(120))
         .connect_timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let body = serde_json::json!({
-        "model": model,
-        "max_tokens": 4096,
-        "system": system_prompt,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
-    });
+    let payload = adapter.build_non_streaming_request(model, system_prompt, prompt);
+    let (auth_name, auth_value) = adapter.auth_header(api_key);
 
-    let response = client
-        .post("https://api.anthropic.com/v1/messages")
-        .header("x-api-key", api_key)
-        .header("anthropic-version", "2023-06-01")
-        .header("content-type", "application/json")
-        .json(&body)
+    let mut request = client
+        .post(&payload.endpoint)
+        .header(auth_name, auth_value)
+        .json(&payload.body);
+
+    for (header_name, header_value) in &payload.headers {
+        request = request.header(header_name, header_value);
+    }
+
+    let response = request
         .send()
         .await
         .map_err(|e| format!("API request failed: {}", e))?;
@@ -66,20 +56,10 @@ async fn send_json_prompt(
         .map_err(|e| format!("Failed to parse API response: {}", e))
 }
 
-fn extract_text_content(resp_body: &Value) -> Result<String, String> {
-    let content = resp_body["content"]
-        .as_array()
-        .and_then(|blocks| {
-            blocks.iter().find_map(|block| {
-                block["type"].as_str().and_then(|kind| {
-                    if kind == "text" {
-                        block["text"].as_str().map(|text| text.to_string())
-                    } else {
-                        None
-                    }
-                })
-            })
-        })
+fn extract_text_content(provider: &str, resp_body: &Value) -> Result<String, String> {
+    let adapter = crate::providers::create_provider_adapter(provider)?;
+    let content = adapter
+        .parse_text_response(resp_body)
         .ok_or_else(|| "No text content in API response".to_string())?;
 
     let json_str = content.trim();
@@ -164,6 +144,15 @@ fn emit_map_updated(app: &AppHandle, topic_slug: &str, reason: &str) {
     let _ = app.emit("knowledge-map-updated", payload);
 }
 
+fn default_model_for_provider(provider: &str) -> &'static str {
+    match provider {
+        "openai" => "gpt-4o",
+        "deepseek" => "deepseek-chat",
+        "qwen" => "qwen-max",
+        _ => "claude-sonnet-4-20250514",
+    }
+}
+
 #[tauri::command]
 pub async fn generate_knowledge_map(
     app: AppHandle,
@@ -175,9 +164,9 @@ pub async fn generate_knowledge_map(
     topic_type: String,
     depth: String,
 ) -> Result<KnowledgeMapOutput, String> {
-    let api_key = resolve_api_key(&provider)?;
+    let api_key = crate::commands::settings::get_api_key_for_provider(&provider)?;
     let model = if model.trim().is_empty() {
-        "claude-sonnet-4-20250514".to_string()
+        default_model_for_provider(&provider).to_string()
     } else {
         model
     };
@@ -190,38 +179,37 @@ pub async fn generate_knowledge_map(
     };
 
     let topic_type_label = match topic_type.as_str() {
-        "programming" => "编程类",
-        "non_programming" => "非编程类",
-        _ => "通用主题",
+        "programming" => "programming",
+        "non_programming" => "non-programming",
+        _ => "general",
     };
 
+    let system_prompt = "You design structured learning maps. Reply with valid JSON only. No markdown, no prose outside JSON.";
     let prompt = format!(
-        r#"你是一位经验丰富的课程设计师。请为以下学习主题生成结构化知识图谱。
+        r#"Generate a structured knowledge map for the following learning topic.
 
-## 学习主题
-- 名称：{topic_name}
-- 类型：{topic_type_label}
-- 深度：{depth}
+Topic name: {topic_name}
+Topic type: {topic_type_label}
+Requested depth: {depth}
 
-## 要求
-- 生成恰好 {max_domains} 个知识域
-- 每个知识域包含恰好 {max_concepts_per_domain} 个核心概念
-- 每个概念都需要提供：name、slug、description、prerequisites、difficulty、estimated_minutes
-- 概念顺序要符合零基础用户的学习路径
+Requirements:
+- Produce exactly {max_domains} domains.
+- Each domain must contain exactly {max_concepts_per_domain} core concepts.
+- Each concept must include: name, slug, description, prerequisites, difficulty, estimated_minutes.
+- Order the concepts for a true beginner.
+- Keep domain and concept names concrete and non-redundant.
 
-## 输出格式
-只输出 JSON，不要输出解释：
-```json
+Return JSON only in this shape:
 {{
   "domains": [
     {{
-      "name": "知识域名称",
+      "name": "Domain name",
       "slug": "domain-slug",
       "concepts": [
         {{
-          "name": "概念名称",
+          "name": "Concept name",
           "slug": "concept-slug",
-          "description": "一句话说明",
+          "description": "One-sentence explanation",
           "prerequisites": [],
           "difficulty": "beginner",
           "estimated_minutes": 15
@@ -229,8 +217,7 @@ pub async fn generate_knowledge_map(
       ]
     }}
   ]
-}}
-```"#,
+}}"#,
         topic_name = topic_name,
         topic_type_label = topic_type_label,
         depth = depth,
@@ -238,15 +225,8 @@ pub async fn generate_knowledge_map(
         max_concepts_per_domain = max_concepts_per_domain,
     );
 
-    let response = send_json_prompt(
-        &api_key,
-        &model,
-        "你是知识图谱生成专家。只输出合法 JSON，不要输出额外说明。",
-        &prompt,
-    )
-    .await?;
-
-    let raw: KnowledgeMapRaw = serde_json::from_str(&extract_text_content(&response)?)
+    let response = send_json_prompt(&provider, &api_key, &model, system_prompt, &prompt).await?;
+    let raw: KnowledgeMapRaw = serde_json::from_str(&extract_text_content(&provider, &response)?)
         .map_err(|e| format!("Failed to parse knowledge map JSON: {}", e))?;
 
     let output = KnowledgeMapOutput {

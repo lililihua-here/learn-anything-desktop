@@ -62,18 +62,18 @@ export default function MindMapPage() {
   );
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
-      <header className="flex shrink-0 items-center gap-4 border-b bg-white px-6 py-4">
+    <div className="flex h-full flex-col bg-gray-50 dark:bg-slate-950">
+      <header className="flex shrink-0 items-center gap-4 border-b bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-900">
         <button
           onClick={() => navigate("/")}
-          className="text-sm text-indigo-500 transition-colors hover:text-indigo-600"
+          className="text-sm text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200"
         >
           {L.mindmap.back}
         </button>
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           {tree ? tree.name : topic}
         </h1>
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-300">
           {L.mindmap.title}
         </span>
         <div className="flex-1" />
@@ -82,7 +82,7 @@ export default function MindMapPage() {
           className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             materialsOpen
               ? "bg-indigo-500 text-white"
-              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           }`}
         >
           {L.mindmap.materials}
@@ -114,7 +114,7 @@ export default function MindMapPage() {
           )}
 
           {!loading && !error && !tree && (
-            <div className="flex h-full items-center justify-center text-gray-500">
+            <div className="flex h-full items-center justify-center text-gray-500 dark:text-gray-400">
               {L.mindmap.emptyState}
             </div>
           )}

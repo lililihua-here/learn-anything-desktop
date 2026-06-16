@@ -2,7 +2,6 @@ use super::scanner::{ProjectFile, ScanResult};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
 const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 const PER_FILE_CHAR_LIMIT: usize = 5000;
 const ROUND1_CHAR_BUDGET: usize = 30_000;
@@ -24,8 +23,6 @@ pub struct CodeUnderstandingMap {
     pub concepts_found: Vec<FoundConcept>,
 }
 
-/// Read a file, truncating to PER_FILE_CHAR_LIMIT characters.
-/// Returns (content, truncated_flag).
 fn read_file_content(path: &str) -> Result<(String, bool), String> {
     let full =
         std::fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path, e))?;
@@ -37,7 +34,6 @@ fn read_file_content(path: &str) -> Result<(String, bool), String> {
     }
 }
 
-/// Build a text block summarizing files (path + first N chars) up to char_budget.
 fn build_file_summary(files: &[&ProjectFile], char_budget: usize) -> String {
     let mut buf = String::with_capacity(char_budget);
     for pf in files {
@@ -59,9 +55,7 @@ fn build_file_summary(files: &[&ProjectFile], char_budget: usize) -> String {
                     buf.push_str("\n... [truncated]");
                 }
             }
-            Err(e) => {
-                buf.push_str(&format!("[read error: {}]", e));
-            }
+            Err(e) => buf.push_str(&format!("[read error: {}]", e)),
         }
 
         if buf.len() >= char_budget {
@@ -72,47 +66,36 @@ fn build_file_summary(files: &[&ProjectFile], char_budget: usize) -> String {
     buf
 }
 
-fn resolve_api_key(provider: &str) -> Result<String, String> {
-    let env_name = match provider {
-        "anthropic" => "ANTHROPIC_API_KEY",
-        _ => return Err(format!("Unsupported provider: {}", provider)),
-    };
-    std::env::var(env_name)
-        .map_err(|_| format!("API key not configured for provider: {}", provider))
-}
-
-/// Send a prompt to the provider endpoint and get the text response.
 async fn call_llm(
     prompt: &str,
     api_key: &str,
     provider: &str,
     model: &str,
 ) -> Result<String, String> {
-    if provider != "anthropic" {
-        return Err(format!("Unsupported provider: {}", provider));
-    }
-
+    let adapter = crate::providers::create_provider_adapter(provider)?;
     let client = reqwest::Client::builder()
         .timeout(REQUEST_TIMEOUT)
         .connect_timeout(std::time::Duration::from_secs(10))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let body = serde_json::json!({
-        "model": model,
-        "max_tokens": 4096,
-        "system": "You are a code analysis expert. Always respond with valid JSON only. No markdown, no explanation.",
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
-    });
+    let payload = adapter.build_non_streaming_request(
+        model,
+        "You are a code analysis expert. Always respond with valid JSON only. No markdown, no explanation.",
+        prompt,
+    );
+    let (auth_name, auth_value) = adapter.auth_header(api_key);
 
-    let response = client
-        .post(ANTHROPIC_API_URL)
-        .header("x-api-key", api_key)
-        .header("anthropic-version", "2023-06-01")
-        .header("content-type", "application/json")
-        .json(&body)
+    let mut request = client
+        .post(&payload.endpoint)
+        .header(auth_name, auth_value)
+        .json(&payload.body);
+
+    for (header_name, header_value) in &payload.headers {
+        request = request.header(header_name, header_value);
+    }
+
+    let response = request
         .send()
         .await
         .map_err(|e| format!("API request failed: {}", e))?;
@@ -128,23 +111,13 @@ async fn call_llm(
         .await
         .map_err(|e| format!("Failed to parse API response: {}", e))?;
 
-    // Safe JSON: find first text block in content array
-    let text_content = resp_body["content"]
-        .as_array()
-        .and_then(|blocks| {
-            blocks.iter().find_map(|block| {
-                block["type"]
-                    .as_str()
-                    .filter(|t| *t == "text")
-                    .and_then(|_| block["text"].as_str())
-            })
-        })
+    let text_content = adapter
+        .parse_text_response(&resp_body)
         .ok_or_else(|| "No text content in API response".to_string())?;
 
-    Ok(text_content.to_string())
+    Ok(text_content)
 }
 
-/// Extract JSON from a string that may have markdown code fences.
 fn extract_json(raw: &str) -> String {
     let text = raw.trim();
     if let Some(inner) = text.strip_prefix("```json") {
@@ -164,7 +137,6 @@ fn extract_json(raw: &str) -> String {
     }
 }
 
-/// Round 1: Identify tech stack and project structure from top-priority files.
 async fn round1_tech_stack(
     project_name: &str,
     files: &[ProjectFile],
@@ -172,12 +144,7 @@ async fn round1_tech_stack(
     provider: &str,
     model: &str,
 ) -> Result<(Vec<String>, Vec<FoundConcept>), String> {
-    // Use only the highest-priority files (configs + entry files) for Round 1
-    let round1_files: Vec<&ProjectFile> = files
-        .iter()
-        .take(20) // Limit to first ~20 high-priority files
-        .collect();
-
+    let round1_files: Vec<&ProjectFile> = files.iter().take(20).collect();
     let file_summary = build_file_summary(&round1_files, ROUND1_CHAR_BUDGET);
 
     let prompt = format!(
@@ -258,7 +225,6 @@ Identify:
     Ok((tech_stack, concepts))
 }
 
-/// Round 2: Deep dive into source files for detailed concept discovery.
 async fn round2_deep_dive(
     project_name: &str,
     files: &[ProjectFile],
@@ -267,14 +233,8 @@ async fn round2_deep_dive(
     provider: &str,
     model: &str,
 ) -> Result<Vec<FoundConcept>, String> {
-    let round2_files: Vec<&ProjectFile> = files
-        .iter()
-        .skip(10) // Skip some already-analyzed config files
-        .take(40) // Take more source files
-        .collect();
-
+    let round2_files: Vec<&ProjectFile> = files.iter().skip(10).take(40).collect();
     let file_summary = build_file_summary(&round2_files, ROUND2_CHAR_BUDGET);
-
     let existing_names: Vec<String> = existing_concepts.iter().map(|c| c.name.clone()).collect();
 
     let prompt = format!(
@@ -355,7 +315,6 @@ Find NEW concepts NOT already listed above. Focus on:
     Ok(new_concepts)
 }
 
-/// Round 3: Cross-reference and fill gaps using remaining files.
 async fn round3_cross_reference(
     project_name: &str,
     files: &[ProjectFile],
@@ -364,14 +323,8 @@ async fn round3_cross_reference(
     provider: &str,
     model: &str,
 ) -> Result<Vec<FoundConcept>, String> {
-    let round3_files: Vec<&ProjectFile> = files
-        .iter()
-        .skip(50) // Skip already-processed files
-        .take(50) // Take next batch
-        .collect();
-
+    let round3_files: Vec<&ProjectFile> = files.iter().skip(50).take(50).collect();
     let file_summary = build_file_summary(&round3_files, ROUND3_CHAR_BUDGET);
-
     let concepts_summary: Vec<String> = all_concepts
         .iter()
         .map(|c| format!("{} ({}): {:?}", c.name, c.category, c.files))
@@ -450,14 +403,13 @@ async fn round3_cross_reference(
     Ok(gap_concepts)
 }
 
-/// Main entry point: analyze a project scan to produce a CodeUnderstandingMap.
 pub async fn analyze_project(
     project_name: &str,
     scan: &ScanResult,
     provider: &str,
     model: &str,
 ) -> Result<CodeUnderstandingMap, String> {
-    let api_key = resolve_api_key(provider)?;
+    let api_key = crate::commands::settings::get_api_key_for_provider(provider)?;
 
     if scan.included_files.is_empty() {
         return Ok(CodeUnderstandingMap {
@@ -469,13 +421,11 @@ pub async fn analyze_project(
 
     let inc_files = &scan.included_files;
 
-    // Round 1: Tech stack + initial concepts
     let (tech_stack, round1_concepts) =
         round1_tech_stack(project_name, inc_files, &api_key, provider, model).await?;
 
     let mut all_concepts = round1_concepts;
 
-    // Round 2: Deep dive (only if we have enough files)
     if inc_files.len() > 10 {
         let round2_concepts = round2_deep_dive(
             project_name,
@@ -489,7 +439,6 @@ pub async fn analyze_project(
         all_concepts.extend(round2_concepts);
     }
 
-    // Round 3: Cross-reference (only if we have enough files)
     if inc_files.len() > 50 {
         let round3_concepts = round3_cross_reference(
             project_name,
@@ -503,7 +452,6 @@ pub async fn analyze_project(
         all_concepts.extend(round3_concepts);
     }
 
-    // Deduplicate concepts by name
     let mut seen = std::collections::HashSet::new();
     all_concepts.retain(|c| seen.insert(c.name.clone()));
 

@@ -2,8 +2,8 @@ pub mod ai;
 pub mod commands;
 pub mod db;
 pub mod pipeline;
-pub mod providers;
 pub mod project;
+pub mod providers;
 pub mod topic;
 
 use db::Database;
@@ -65,6 +65,9 @@ pub fn run() {
             commands::settings::validate_api_key,
             commands::settings::save_settings,
             commands::settings::get_settings,
+            commands::migration::export_state,
+            commands::migration::import_state,
+            commands::migration::import_state_bytes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

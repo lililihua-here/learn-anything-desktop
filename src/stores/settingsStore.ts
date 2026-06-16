@@ -7,6 +7,8 @@ interface SettingsState {
   apiKey: string;
   isKeyConfigured: boolean;
   hasCompletedOnboarding: boolean;
+  onboardingResolved: boolean;
+  hasConfiguredProvider: boolean;
   provider: string;
   model: string;
   locale: Locale;
@@ -15,6 +17,9 @@ interface SettingsState {
   setApiKey: (key: string) => void;
   setConfigured: (v: boolean) => void;
   completeOnboarding: () => void;
+  setOnboardingCompleted: (v: boolean) => void;
+  setOnboardingResolved: (v: boolean) => void;
+  setHasConfiguredProvider: (v: boolean) => void;
   setProvider: (p: string) => void;
   setModel: (m: string) => void;
   setLocale: (locale: Locale) => void;
@@ -27,6 +32,8 @@ export const useSettingsStore = create<SettingsState>()(
       apiKey: "",
       isKeyConfigured: false,
       hasCompletedOnboarding: false,
+      onboardingResolved: false,
+      hasConfiguredProvider: false,
       provider: "anthropic",
       model: "claude-sonnet-4-20250514",
       locale: "zh-CN",
@@ -35,6 +42,9 @@ export const useSettingsStore = create<SettingsState>()(
       setApiKey: (key) => set({ apiKey: key }),
       setConfigured: (v) => set({ isKeyConfigured: v }),
       completeOnboarding: () => set({ hasCompletedOnboarding: true }),
+      setOnboardingCompleted: (v) => set({ hasCompletedOnboarding: v }),
+      setOnboardingResolved: (v) => set({ onboardingResolved: v }),
+      setHasConfiguredProvider: (v) => set({ hasConfiguredProvider: v }),
       setProvider: (p) => set({ provider: p }),
       setModel: (m) => set({ model: m }),
       setLocale: (locale) => set({ locale }),

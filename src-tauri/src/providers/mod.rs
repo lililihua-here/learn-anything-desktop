@@ -1,8 +1,8 @@
-pub mod traits;
 pub mod anthropic;
-pub mod openai;
 pub mod deepseek;
+pub mod openai;
 pub mod qwen;
+pub mod traits;
 
 use std::collections::HashMap;
 use traits::ProviderAdapter;
@@ -41,10 +41,20 @@ impl ProviderRegistry {
     /// (Anthropic, OpenAI, DeepSeek, and Qwen).
     pub fn default() -> Self {
         let mut registry = Self::new();
-        registry.register(Box::new(anthropic::AnthropicAdapter::new()));
-        registry.register(Box::new(openai::OpenAIAdapter::new()));
-        registry.register(Box::new(deepseek::DeepSeekAdapter::new()));
-        registry.register(Box::new(qwen::QwenAdapter::new()));
+        registry.register(create_provider_adapter("anthropic").expect("anthropic adapter"));
+        registry.register(create_provider_adapter("openai").expect("openai adapter"));
+        registry.register(create_provider_adapter("deepseek").expect("deepseek adapter"));
+        registry.register(create_provider_adapter("qwen").expect("qwen adapter"));
         registry
+    }
+}
+
+pub fn create_provider_adapter(name: &str) -> Result<Box<dyn ProviderAdapter>, String> {
+    match name {
+        "anthropic" => Ok(Box::new(anthropic::AnthropicAdapter::new())),
+        "openai" => Ok(Box::new(openai::OpenAIAdapter::new())),
+        "deepseek" => Ok(Box::new(deepseek::DeepSeekAdapter::new())),
+        "qwen" => Ok(Box::new(qwen::QwenAdapter::new())),
+        _ => Err(format!("Unsupported provider: {}", name)),
     }
 }

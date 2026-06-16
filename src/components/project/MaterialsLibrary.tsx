@@ -86,7 +86,7 @@ export default function MaterialsLibrary({
           className="rounded p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
           aria-label={L.materials.closeAriaLabel}
         >
-          ×
+          X
         </button>
       </div>
 
@@ -96,7 +96,10 @@ export default function MaterialsLibrary({
 
       {projectPath && (
         <div className="border-b border-gray-100 px-4 py-2 dark:border-gray-700">
-          <p className="truncate text-xs text-gray-400 dark:text-gray-500">{L.materials.projectPrefix}{projectPath}</p>
+          <p className="truncate text-xs text-gray-400 dark:text-gray-500">
+            {L.materials.projectPrefix}
+            {projectPath}
+          </p>
         </div>
       )}
 
@@ -186,7 +189,7 @@ export default function MaterialsLibrary({
                     className="shrink-0 rounded p-0.5 text-gray-400 transition-colors hover:text-red-500"
                     aria-label={L.materials.removeAriaLabel.replace("{name}", source.name)}
                   >
-                    ×
+                    X
                   </button>
                 </div>
                 <div className="mt-2 flex items-center gap-2">

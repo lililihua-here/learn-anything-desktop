@@ -219,6 +219,15 @@ export function saveAppSetting(key: string, value: string): Promise<void> {
   return invoke("save_settings", { key, value });
 }
 
+export interface AppSetting {
+  key: string;
+  value: string;
+}
+
+export function getAppSettings(): Promise<AppSetting[]> {
+  return invoke("get_settings");
+}
+
 // ── Data Migration / Export-Import ───────────────────────────────────────────
 
 export async function exportState(format: string): Promise<string> {
@@ -227,6 +236,10 @@ export async function exportState(format: string): Promise<string> {
 
 export async function importState(path: string): Promise<string> {
   return invoke("import_state", { path });
+}
+
+export async function importStateBytes(bytes: Uint8Array): Promise<string> {
+  return invoke("import_state_bytes", { bytes: Array.from(bytes) });
 }
 
 // ── Online / Offline Detection ──────────────────────────────────────────────

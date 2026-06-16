@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use std::pin::Pin;
 use std::future::Future;
+use std::pin::Pin;
 
 use super::traits::{
-    ParsedChunk, ParsedEventType, ParseError, ProviderAdapter, RequestPayload, ToolDef,
+    ParseError, ParsedChunk, ParsedEventType, ProviderAdapter, RequestPayload, ToolDef,
 };
 
 /// Per-request mutable state for OpenAI SSE parsing.
@@ -82,9 +82,8 @@ impl ProviderAdapter for OpenAIAdapter {
             })
             .collect();
 
-        let mut msgs: Vec<serde_json::Value> = vec![
-            serde_json::json!({"role": "system", "content": system_prompt}),
-        ];
+        let mut msgs: Vec<serde_json::Value> =
+            vec![serde_json::json!({"role": "system", "content": system_prompt})];
         msgs.extend_from_slice(messages);
 
         let mut body = serde_json::json!({
@@ -100,9 +99,7 @@ impl ProviderAdapter for OpenAIAdapter {
 
         RequestPayload {
             endpoint: self.chat_endpoint().to_string(),
-            headers: vec![
-                ("content-type".to_string(), "application/json".to_string()),
-            ],
+            headers: vec![("content-type".to_string(), "application/json".to_string())],
             body,
         }
     }
@@ -124,17 +121,12 @@ impl ProviderAdapter for OpenAIAdapter {
 
         RequestPayload {
             endpoint: self.chat_endpoint().to_string(),
-            headers: vec![
-                ("content-type".to_string(), "application/json".to_string()),
-            ],
+            headers: vec![("content-type".to_string(), "application/json".to_string())],
             body,
         }
     }
 
-    fn parse_stream_chunk(
-        &mut self,
-        data: &str,
-    ) -> Result<Option<ParsedChunk>, ParseError> {
+    fn parse_stream_chunk(&mut self, data: &str) -> Result<Option<ParsedChunk>, ParseError> {
         // Handle the "[DONE]" sentinel
         if data.trim() == "[DONE]" {
             // Flush any pending tool calls before emitting Done
@@ -182,11 +174,7 @@ impl ProviderAdapter for OpenAIAdapter {
                 for tc in tool_calls {
                     let index = tc["index"].as_i64().unwrap_or(0);
 
-                    let state = self
-                        .parse_state
-                        .tool_states
-                        .entry(index)
-                        .or_default();
+                    let state = self.parse_state.tool_states.entry(index).or_default();
 
                     // Capture the function name if provided
                     if let Some(name) = tc["function"]["name"].as_str() {

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocale } from "../../i18n/useLocale";
 import { useCardStore } from "../../stores/cardStore";
 import CardItem from "./CardItem";
 
@@ -10,6 +11,7 @@ export default function CardQueue() {
   const undo = useCardStore((s) => s.undo);
   const toast = useCardStore((s) => s.toastMessage);
   const clearToast = useCardStore((s) => s.clearToast);
+  const L = useLocale();
 
   useEffect(() => {
     if (toast) {
@@ -18,30 +20,41 @@ export default function CardQueue() {
     }
   }, [toast, clearToast]);
 
+  const title =
+    queue.length > 0
+      ? `${L.cards.queueTitle} · ${L.cards.queueRemaining.replace("{count}", String(queue.length))}`
+      : L.cards.queueTitle;
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-4 py-3 border-b shrink-0">
-        <span className="text-sm font-medium text-gray-600">
-          {queue.length > 0 ? `Knowledge Cards · ${queue.length} remaining` : "Knowledge Cards"}
-        </span>
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 border-b px-4 py-3 dark:border-gray-700">
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{title}</span>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {queue.length > 0 ? queue.map((card) => (
-          <CardItem key={card.id} card={card}
-            onSwipeRight={() => swipeRight(card.id)}
-            onSwipeLeft={() => swipeLeft(card.id)}
-            onMastered={() => markMastered(card.id)} />
-        )) : (
-          <div className="text-center text-gray-400 text-sm mt-8">
-            <p>📭</p><p className="mt-2">Queue empty</p>
-            <p className="text-xs mt-1">Cards appear as AI explains concepts</p>
+      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        {queue.length > 0 ? (
+          queue.map((card) => (
+            <CardItem
+              key={card.id}
+              card={card}
+              onSwipeRight={() => swipeRight(card.id)}
+              onSwipeLeft={() => swipeLeft(card.id)}
+              onMastered={() => markMastered(card.id)}
+            />
+          ))
+        ) : (
+          <div className="mt-8 text-center text-sm text-gray-400 dark:text-gray-500">
+            <p>🗂️</p>
+            <p className="mt-2">{L.cards.queueEmpty}</p>
+            <p className="mt-1 text-xs">{L.cards.queueHint}</p>
           </div>
         )}
       </div>
       {toast && (
-        <div className="px-4 py-2 border-t bg-gray-50 flex justify-between items-center text-sm">
-          <span className="text-gray-600">{toast}</span>
-          <button onClick={undo} className="text-indigo-500 font-medium">Undo</button>
+        <div className="flex items-center justify-between border-t bg-gray-50 px-4 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
+          <span className="text-gray-600 dark:text-gray-300">{toast}</span>
+          <button onClick={undo} className="font-medium text-indigo-500 dark:text-indigo-300">
+            {L.cards.undo}
+          </button>
         </div>
       )}
     </div>

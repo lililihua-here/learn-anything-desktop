@@ -1,29 +1,37 @@
 use super::transport;
 use super::types::{StreamEvent, StreamEventType};
+use crate::providers;
+use crate::providers::traits::{ParsedChunk, ParsedEventType, ToolDef};
 use futures::StreamExt;
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 
 pub async fn run(
+    provider: &str,
     api_key: &str,
     model: &str,
     system_prompt: &str,
     messages: &[serde_json::Value],
-    tools: &[serde_json::Value],
+    tools: &[ToolDef],
     session_id: &str,
     concept_slug: &str,
     tx: broadcast::Sender<StreamEvent>,
     cancel_token: CancellationToken,
 ) -> Result<(), String> {
-    let mut stream =
-        transport::start_stream(api_key, model, system_prompt, messages, tools).await?;
+    let mut adapter = providers::create_provider_adapter(provider)?;
+    let mut stream = transport::start_stream(
+        api_key,
+        adapter.as_ref(),
+        model,
+        system_prompt,
+        messages,
+        tools,
+    )
+    .await?;
     let mut buffer = String::new();
 
     let sid = session_id.to_string();
     let cs = concept_slug.to_string();
-
-    let mut active_tool_name: Option<String> = None;
-    let mut tool_input_buffer: String = String::new();
 
     loop {
         let chunk = tokio::select! {
@@ -31,8 +39,11 @@ pub async fn run(
             _ = cancel_token.cancelled() => {
                 let _ = tx.send(StreamEvent {
                     event_type: StreamEventType::Done,
-                    content: String::new(), tool_name: None, tool_input: None,
-                    session_id: sid.clone(), concept_slug: cs.clone(),
+                    content: String::new(),
+                    tool_name: None,
+                    tool_input: None,
+                    session_id: sid.clone(),
+                    concept_slug: cs.clone(),
                 });
                 return Ok(());
             }
@@ -55,87 +66,41 @@ pub async fn run(
                 if !line.starts_with("data: ") {
                     continue;
                 }
-                let data = &line[6..];
-                let event: serde_json::Value = match serde_json::from_str(data) {
-                    Ok(v) => v,
-                    Err(_) => continue,
-                };
 
-                let ev_type = event["type"].as_str().unwrap_or("");
-                match ev_type {
-                    "content_block_start" => {
-                        let block = &event["content_block"];
-                        if block["type"] == "tool_use" {
-                            active_tool_name =
-                                Some(block["name"].as_str().unwrap_or("").to_string());
-                            tool_input_buffer.clear();
-                        }
-                    }
-                    "content_block_delta" => {
-                        let delta = &event["delta"];
-                        if let Some(text) = delta["text"].as_str() {
-                            let _ = tx.send(StreamEvent {
-                                event_type: StreamEventType::TextDelta,
-                                content: text.to_string(),
-                                tool_name: None,
-                                tool_input: None,
-                                session_id: sid.clone(),
-                                concept_slug: cs.clone(),
-                            });
-                        }
-                        if let Some(json_fragment) = delta["input_json_delta"].as_str() {
-                            tool_input_buffer.push_str(json_fragment);
-                        }
-                    }
-                    "content_block_stop" => {
-                        if let Some(ref name) = active_tool_name.take() {
-                            let tool_input = if tool_input_buffer.is_empty() {
-                                None
-                            } else {
-                                serde_json::from_str(&tool_input_buffer).ok()
-                            };
-                            let _ = tx.send(StreamEvent {
-                                event_type: StreamEventType::ToolUse,
-                                content: String::new(),
-                                tool_name: Some(name.clone()),
-                                tool_input,
-                                session_id: sid.clone(),
-                                concept_slug: cs.clone(),
-                            });
-                        }
-                        tool_input_buffer.clear();
-                    }
-                    "message_delta" => {
-                        if let Some(reason) = event["delta"]["stop_reason"].as_str() {
-                            if reason == "end_turn" || reason == "tool_use" {
-                                let _ = tx.send(StreamEvent {
-                                    event_type: StreamEventType::Done,
-                                    content: String::new(),
-                                    tool_name: None,
-                                    tool_input: None,
-                                    session_id: sid.clone(),
-                                    concept_slug: cs.clone(),
-                                });
-                            }
-                        }
-                    }
-                    "error" => {
-                        let _ = tx.send(StreamEvent {
-                            event_type: StreamEventType::Error,
-                            content: event["error"]["message"]
-                                .as_str()
-                                .unwrap_or("Unknown")
-                                .into(),
-                            tool_name: None,
-                            tool_input: None,
-                            session_id: sid.clone(),
-                            concept_slug: cs.clone(),
-                        });
-                    }
-                    _ => {}
+                let data = &line[6..];
+                let parsed = adapter
+                    .parse_stream_chunk(data)
+                    .map_err(|e| format!("Provider parse error: {}", e))?;
+
+                if let Some(chunk) = parsed {
+                    emit_parsed_chunk(&tx, &sid, &cs, chunk);
                 }
             }
         }
     }
+
     Ok(())
+}
+
+fn emit_parsed_chunk(
+    tx: &broadcast::Sender<StreamEvent>,
+    session_id: &str,
+    concept_slug: &str,
+    chunk: ParsedChunk,
+) {
+    let event_type = match chunk.event_type {
+        ParsedEventType::TextDelta => StreamEventType::TextDelta,
+        ParsedEventType::ToolUse => StreamEventType::ToolUse,
+        ParsedEventType::Done => StreamEventType::Done,
+        ParsedEventType::Error => StreamEventType::Error,
+    };
+
+    let _ = tx.send(StreamEvent {
+        event_type,
+        content: chunk.content,
+        tool_name: chunk.tool_name,
+        tool_input: chunk.tool_input,
+        session_id: session_id.to_string(),
+        concept_slug: concept_slug.to_string(),
+    });
 }

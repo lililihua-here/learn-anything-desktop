@@ -1,8 +1,8 @@
-use std::pin::Pin;
 use std::future::Future;
+use std::pin::Pin;
 
 use super::traits::{
-    ParsedChunk, ParsedEventType, ParseError, ProviderAdapter, RequestPayload, ToolDef,
+    ParseError, ParsedChunk, ParsedEventType, ProviderAdapter, RequestPayload, ToolDef,
 };
 
 /// Per-request mutable state for Anthropic SSE parsing.
@@ -108,10 +108,7 @@ impl ProviderAdapter for AnthropicAdapter {
         }
     }
 
-    fn parse_stream_chunk(
-        &mut self,
-        data: &str,
-    ) -> Result<Option<ParsedChunk>, ParseError> {
+    fn parse_stream_chunk(&mut self, data: &str) -> Result<Option<ParsedChunk>, ParseError> {
         // Handle the special "[DONE]" sentinel that some proxies emit
         if data.trim() == "[DONE]" {
             return Ok(Some(ParsedChunk {
@@ -155,9 +152,7 @@ impl ProviderAdapter for AnthropicAdapter {
 
                 // Tool input JSON fragment — accumulate, do not emit yet
                 if let Some(json_fragment) = delta["input_json_delta"].as_str() {
-                    self.parse_state
-                        .tool_input_buffer
-                        .push_str(json_fragment);
+                    self.parse_state.tool_input_buffer.push_str(json_fragment);
                 }
 
                 Ok(None)
